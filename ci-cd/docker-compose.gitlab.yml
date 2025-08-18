@@ -1,0 +1,160 @@
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ce:16.8.1-ce.0'
+    platform: linux/amd64
+    container_name: gitlab-ce
+    hostname: 'gitlab.vise.local'
+    restart: always
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.vise.local'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+        
+        # Performance optimizations for 500 developers
+        gitlab_rails['initial_root_password'] = 'ViseSecure2025!'
+        postgresql['shared_preload_libraries'] = 'pg_stat_statements'
+        postgresql['max_connections'] = 200
+        postgresql['shared_buffers'] = "1GB"
+        postgresql['effective_cache_size'] = "2GB"
+        
+        # CI/CD Performance
+        gitlab_ci['builds_directory'] = '/builds'
+        gitlab_ci['max_artifacts_size'] = 1000
+        
+        # Container Registry
+        registry_external_url 'http://gitlab.vise.local:5050'
+        gitlab_rails['registry_enabled'] = true
+        
+        # Backup settings
+        gitlab_rails['backup_keep_time'] = 604800
+        gitlab_rails['backup_upload_connection'] = {
+          'provider' => 'local'
+        }
+        
+        # Monitoring
+        prometheus_monitoring['enable'] = true
+        
+        # Performance tuning
+        sidekiq['max_concurrency'] = 25
+        puma['worker_processes'] = 4
+        puma['worker_timeout'] = 60
+        
+        # Git settings for large repositories
+        gitlab_rails['git_timeout'] = 10
+        
+    ports:
+      - '80:80'
+      - '443:443'
+      - '2222:22'
+      - '5050:5050'  # Container registry
+    volumes:
+      - './gitlab/config:/etc/gitlab'
+      - './gitlab/logs:/var/log/gitlab'
+      - './gitlab/data:/var/opt/gitlab'
+      - './gitlab/backups:/var/opt/gitlab/backups'
+    shm_size: '1g'  # Critical for 500 users - increased from default 64m
+    networks:
+      - gitlab-network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  gitlab-runner-1:
+    image: gitlab/gitlab-runner:v16.8.1
+    platform: linux/amd64
+    container_name: gitlab-runner-1
+    restart: always
+    volumes:
+      - './runner-config-1:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - gitlab-network
+    depends_on:
+      - gitlab
+
+  # gitlab-runner-2:
+  #   image: gitlab/gitlab-runner:v16.8.1
+  #   container_name: gitlab-runner-2
+  #   restart: always
+  #   volumes:
+  #     - './runner-config-2:/etc/gitlab-runner'
+  #     - '/var/run/docker.sock:/var/run/docker.sock'
+  #   networks:
+  #     - gitlab-network
+  #   depends_on:
+  #     - gitlab
+
+  # gitlab-runner-3:
+  #   image: gitlab/gitlab-runner:v16.8.1
+  #   container_name: gitlab-runner-3
+  #   restart: always
+  #   volumes:
+  #     - './runner-config-3:/etc/gitlab-runner'
+  #     - '/var/run/docker.sock:/var/run/docker.sock'
+  #   networks:
+  #     - gitlab-network
+  #   depends_on:
+  #     - gitlab
+
+  # Redis for additional caching (optional but recommended for 500 users)
+  redis:
+    image: redis:7.2-alpine
+    platform: linux/amd64
+    container_name: gitlab-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - './redis-data:/data'
+    networks:
+      - gitlab-network
+
+  # PostgreSQL for GitLab (external DB for better performance)
+  postgresql:
+    image: postgres:15.5
+    platform: linux/amd64
+    container_name: gitlab-postgresql
+    restart: always
+    environment:
+      POSTGRES_DB: gitlabhq_production
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: gitlab_db_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - './postgresql-data:/var/lib/postgresql/data'
+    networks:
+      - gitlab-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Nginx proxy for load balancing (for HA setup)
+#   nginx:
+#     image: nginx:1.25-alpine
+#     container_name: gitlab-nginx
+#     restart: always
+#     ports:
+#       - "8080:80"
+#     volumes:
+#       - './nginx/nginx.conf:/etc/nginx/nginx.conf:ro'
+#     networks:
+#       - gitlab-network
+#     depends_on:
+#       - gitlab
+
+networks:
+  gitlab-network:
+    driver: bridge
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
+  gitlab-backups:
+  postgresql-data:
+  redis-data:

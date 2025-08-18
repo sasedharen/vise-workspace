@@ -1,0 +1,706 @@
+# School Management System - Development Rules
+
+## Project Overview
+This is a large-scale school management system serving 10M+ users across 1000 branches.
+Tech Stack:
+- Backend: Golang with Gin framework and GORM ORM
+- Frontend: Next.js with TypeScript
+- Auth Service: JWT tokens, Role-based access control (RBAC), OAuth 2.0
+- Database: PostgreSQL with Flyway migrations
+
+## Project Structure
+root/
+├── vise-backend/          # Golang backend with GORM
+├── vise-frontend/         # Next.js TypeScript frontend
+├── auth-service/         # Authentication & Authorization service
+├── database/         # PostgreSQL schemas and Flyway migrations
+
+## Critical Development Rules
+
+### 1. SCHEMA SYNCHRONIZATION RULE (MOST IMPORTANT)
+Whenever creating or modifying any data structure:
+1. FIRST define/update the database schema in `database/migrations/`
+2. THEN create/update the GORM model in `vise-backend/models/`
+3. FINALLY create/update TypeScript interfaces in `vise-frontend/types/`
+4. All three MUST match exactly in terms of fields and types
+
+### 2. Module Structure
+The system has 6 core modules:
+- admission (student admissions and enrollment)
+- sports (sports activities and achievements)
+- entrepreneurship (startup/business initiatives)
+- research (research projects and publications)
+- academics (courses, grades, attendance)
+- soft_skills (personality development, communication)
+- industry_collaboration (internships, placements, industry projects)
+
+When working on any module, ensure changes are reflected in all three layers.
+
+### 3. File Naming Conventions
+- Backend: 
+  - Models: `vise-backend/models/{module}.go` (e.g., admission.go)
+  - Handlers: `vise-backend/handlers/{module}_handler.go`
+  - Services: `vise-backend/services/{module}_service.go`
+- Frontend:
+  - Pages: `vise-frontend/pages/{module}/index.tsx`
+  - Components: `vise-frontend/components/{module}/[ComponentName].tsx`
+  - Types: `frontend/types/{module}.ts`
+- Database:
+  - Migrations: `database/migrations/V{number}__{description}.sql`
+  - Schema: `database/schemas/{module}.sql`
+
+### 4. Type Mappings
+When creating fields, use these consistent type mappings:
+
+| PostgreSQL       | GORM (Go)           | TypeScript      | Form Input Type |
+|-----------------|---------------------|-----------------|-----------------|
+| VARCHAR(255)    | string              | string          | text           |
+| TEXT            | string              | string          | textarea       |
+| INTEGER         | int/int32           | number          | number         |
+| BIGINT          | int64               | number          | number         |
+| DECIMAL         | float64             | number          | number         |
+| BOOLEAN         | bool                | boolean         | checkbox       |
+| DATE            | time.Time           | Date \| string  | date           |
+| TIMESTAMP       | time.Time           | Date \| string  | datetime-local |
+| UUID            | string/uuid.UUID    | string          | hidden/text    |
+| JSONB           | json.RawMessage     | any/object      | json-editor    |
+
+### 5. GORM Model Template
+When creating a new GORM model, follow this pattern:
+```go
+type {Module} struct {
+    ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+    // ... other fields
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+6. API Endpoint Pattern
+
+GET /api/v1/{module} - List all
+GET /api/v1/{module}/{id} - Get single
+POST /api/v1/{module} - Create new
+PUT /api/v1/{module}/{id} - Update
+DELETE /api/v1/{module}/{id} - Delete
+
+7. Frontend Form Generation
+When creating forms:
+
+Import types from frontend/types/{module}.ts
+Use react-hook-form with zod validation
+Include loading states and error handling
+Add success/error toast notifications
+
+8. Database Migration Rules
+
+Always create UP and DOWN migrations
+Include IF EXISTS/IF NOT EXISTS checks
+Add proper indexes for foreign keys and frequently queried fields
+Consider performance for 10M+ users (add appropriate indexes)
+
+9. Multi-tenancy Consideration
+EVERY table must include:
+
+branch_id (UUID) - for branch isolation
+Add index on branch_id for performance
+All queries must filter by branch_id
+
+10. Code Generation Instructions
+When asked to create a new feature/module:
+
+Generate complete database migration first
+Generate GORM model with proper tags
+Generate TypeScript interface matching GORM model
+Generate API handlers with all CRUD operations
+Generate Next.js pages with forms
+Generate validation schemas (Zod for frontend, Go validator for backend)
+
+Current Working Context
+MODULE: [Specify current module when starting work]
+TASK: [Specify current task]
+BRANCH: [Specify git branch if relevant]
+Common Tasks Commands
+Creating a New Module
+"Create a complete {module_name} module with:
+
+Database schema with tables for {specify requirements}
+GORM models matching the schema
+Full CRUD API in backend
+TypeScript types for frontend
+Next.js form and list pages
+Proper validation on both frontend and backend"
+
+Adding a Field
+"Add {field_name} field of type {type} to {module}:
+
+Add to database migration
+Update GORM model
+Update TypeScript interface
+Add to form with validation
+Update API to handle the new field"
+
+Performance Optimization
+"Optimize {module} for 10M+ users:
+
+Add appropriate database indexes
+Implement pagination in backend
+Add caching where appropriate
+Implement lazy loading in frontend
+Add bulk operations support"
+
+Important Reminders
+
+ALWAYS maintain consistency across all three layers
+NEVER create a model without corresponding migration and types
+ALWAYS consider multi-tenancy (branch_id)
+ALWAYS add proper validation
+ALWAYS handle errors gracefully
+ALWAYS consider performance for millions of users
+ALWAYS include created_at, updated_at, deleted_at fields
+
+File References for Context
+When working on any module, always check:
+
+backend/models/{module}.go - Current GORM model
+frontend/types/{module}.ts - Current TypeScript types
+database/migrations/ - Latest migration for the module
+backend/handlers/{module}_handler.go - Current API implementation
+frontend/pages/{module}/ - Current UI implementation
+
+Testing Requirements
+For each feature, generate:
+
+Backend unit tests in backend/tests/
+API integration tests
+Frontend component tests
+E2E tests for critical flows
+
+DO NOT
+
+Create models without migrations
+Add fields to frontend without backend support
+Forget branch_id in any new table
+Use different field names across layers
+Ignore performance implications
+Skip validation
+Forget error handling
+
+
+### Step 2: Create a Context State File
+
+Create `.current-context.md` in the root folder to track what you're working on:
+
+```markdown
+# Current Development Context
+
+## Active Module
+**Module:** admission
+**Status:** Adding validation rules
+
+## Recent Changes
+- [ ] Added email validation to admission form
+- [ ] Updated GORM model with new constraints
+- [ ] Need to create migration for unique constraint
+
+## Next Tasks
+1. Add payment_status field to admission
+2. Create bulk import feature
+3. Add export to Excel functionality
+
+## Open Issues
+- Form submission not showing loading state
+- Need to add pagination to admission list
+- Email duplicate check needed
+
+## Field Mappings for Current Module
+| Field Name     | DB Type      | GORM Type    | TS Type  | Validation           |
+|---------------|--------------|--------------|----------|----------------------|
+| id            | UUID         | uuid.UUID    | string   | auto-generated       |
+| student_name  | VARCHAR(255) | string       | string   | required, min:3      |
+| email         | VARCHAR(255) | string       | string   | required, email      |
+| phone         | VARCHAR(20)  | string       | string   | optional, phone      |
+| branch_id     | UUID         | uuid.UUID    | string   | required, FK         |
+| program       | VARCHAR(100) | string       | string   | required, enum       |
+
+## Code Snippets for Reference
+```go
+// Current GORM model
+type Admission struct {
+    ID          uuid.UUID `gorm:"type:uuid;default:gen_random_uuid()"`
+    StudentName string    `gorm:"size:255;not null"`
+    Email       string    `gorm:"size:255;uniqueIndex;not null"`
+    // ... rest of fields
+}
+
+### Step 3: Create Quick Reference Sheet
+
+Create `.windsurf-commands.md` for common prompts:
+
+```markdown
+# Windsurf Quick Commands
+
+## Complete Module Creation
+"Create a complete sports module with:
+- athlete profiles (name, sport, achievements, branch_id)
+- events table (event_name, date, venue, participants)
+- performance tracking (athlete_id, event_id, score, rank)
+Include all GORM models, migrations, APIs, and frontend forms"
+
+## Add Field to Existing Module
+"Add payment_status field (enum: pending, completed, failed) to admission module across all layers with proper migration, model update, and form field"
+
+## Fix Synchronization Issues
+"Check admission module and ensure database schema, GORM model, and TypeScript types are synchronized. Fix any mismatches."
+
+## Generate Missing Parts
+"The admission module has GORM model but missing TypeScript types and frontend form. Generate the missing parts based on the existing GORM model."
+
+## Performance Optimization
+"Add proper indexes to admission table for queries filtering by branch_id, email, and created_at. Update GORM model with index tags."
+
+## Validation Addition
+"Add comprehensive validation to admission module:
+- Backend: Go validator tags
+- Frontend: Zod schema
+- Database: Check constraints"
+
+## API Generation
+"Generate complete REST API for admission module with:
+- List with pagination and filters
+- Get by ID
+- Create with validation
+- Update (partial and full)
+- Soft delete
+- Bulk operations"
+
+## Form Generation
+"Create a Next.js form for admission using:
+- react-hook-form
+- Zod validation
+- TypeScript types from frontend/types/admission.ts
+- Proper error handling
+- Loading states
+- Success notifications"
+
+## Migration Creation
+"Create a Flyway migration to:
+1. Add payment_status to admissions table
+2. Add index on (branch_id, created_at)
+3. Add check constraint for email format"
+
+## Bug Fix Templates
+"Fix: GORM model Admission has field X but it's missing in database migration. Add proper migration."
+
+"Fix: Frontend form is submitting field Y but backend API doesn't handle it. Update API handler."
+
+## Testing Generation
+"Generate tests for admission module:
+- Unit tests for service layer
+- Integration tests for API endpoints
+- Frontend component tests
+- E2E test for complete admission flow"
+Step 4: Create Module Template File
+Create .module-template.yaml for consistency:
+yaml# Template for new modules
+module:
+  name: ${MODULE_NAME}
+  
+  database:
+    table: ${MODULE_NAME}s
+    fields:
+      - name: id
+        type: UUID
+        constraints: PRIMARY KEY DEFAULT gen_random_uuid()
+      - name: branch_id
+        type: UUID
+        constraints: NOT NULL
+        index: true
+      - name: created_at
+        type: TIMESTAMP
+        constraints: DEFAULT NOW()
+      - name: updated_at
+        type: TIMESTAMP
+        constraints: DEFAULT NOW()
+      - name: deleted_at
+        type: TIMESTAMP
+        constraints: NULL
+    indexes:
+      - fields: [branch_id, created_at]
+      - fields: [deleted_at]
+  
+  gorm:
+    model_file: backend/models/${MODULE_NAME}.go
+    embedded: |
+      ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+      BranchID  uuid.UUID      `gorm:"type:uuid;not null;index"`
+      CreatedAt time.Time
+      UpdatedAt time.Time
+      DeletedAt gorm.DeletedAt `gorm:"index"`
+  
+  frontend:
+    types_file: frontend/types/${MODULE_NAME}.ts
+    interface: |
+      export interface ${MODULE_NAME_PASCAL} {
+        id: string;
+        branchId: string;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt?: string;
+      }
+  
+  api:
+    base_path: /api/v1/${MODULE_NAME}
+    endpoints:
+      - GET /
+      - GET /:id
+      - POST /
+      - PUT /:id
+      - DELETE /:id
+      - POST /bulk
+Step 5: Usage Tips
+
+Before starting any work, update .current-context.md:
+bash"I'm now working on the sports module, specifically adding athlete performance tracking"
+
+When asking Windsurf to generate code, reference the rules:
+bash"Following our synchronization rules, add a 'grade' field to the academics module"
+
+For complex operations, reference multiple files:
+bash"Using the admission module as reference (see backend/models/admission.go), create a similar structure for research module"
+
+Regularly verify consistency:
+bash"Check if all three layers are synchronized for the admission module according to our rules"
+
+
+This setup will ensure Windsurf maintains context and follows consistent patterns across your entire codebase. The key is to always reference these rules in your prompts and keep the context files updated.RetrySCmy project folders are vise-backend for golang based backend, vise-frontend for frontend using next.js. there is auth-service folder which contain authentication an authorisation logic.EditMapped project context rules for multi-service architecture.2sThe user has clarified their actual project structure:
+
+vise-backend (Golang backend)
+vise-frontend (Next.js frontend)
+auth-service (authentication/authorization service)
+
+They want me to create Windsurf rules to maintain context across these three projects. I need to update my previous response to match their actual folder names and include the auth-service in the context rules.Creating Windsurf Rules for Your Vise Project Structure
+Here's a comprehensive rules file tailored for your specific project structure with vise-backend, vise-frontend, and auth-service:
+Step 1: Create .windsurfrules File
+Create a .windsurfrules file in your root folder (parent of vise-backend/vise-frontend/auth-service):
+markdown# VISE School Management System - Development Rules
+
+## Project Overview
+Large-scale school management system serving 10M+ users across 1000 branches.
+Project Name: VISE (Virtual Institute for School Excellence)
+
+## Project Structure
+root/
+├── vise-backend/     # Golang backend with Gin/GORM
+├── vise-frontend/    # Next.js TypeScript frontend
+├── auth-service/     # Authentication & Authorization service
+└── database/         # PostgreSQL schemas and Flyway migrations
+
+## Tech Stack
+- **vise-backend**: Golang, Gin Framework, GORM ORM, PostgreSQL
+- **vise-frontend**: Next.js 14, TypeScript, React Hook Form, Tailwind CSS
+- **auth-service**: JWT tokens, Role-based access control (RBAC), OAuth 2.0
+- **Database**: PostgreSQL with Flyway migrations
+
+## Critical Development Rules
+
+### 1. AUTHENTICATION FLOW (MUST FOLLOW)
+Every API request flow:
+1. Frontend sends request with JWT token
+2. vise-backend validates token with auth-service
+3. auth-service returns user details and permissions
+4. vise-backend processes request based on permissions
+5. Frontend handles response/errors
+
+### 2. SCHEMA SYNCHRONIZATION RULE
+When creating/modifying any data structure:
+1. FIRST define/update the database schema in `database/migrations/`
+2. THEN create/update the GORM model in `vise-backend/models/`
+3. THEN create/update TypeScript interfaces in `vise-frontend/types/`
+4. FINALLY update auth-service if permissions are affected
+5. All must match exactly in fields and types
+
+### 3. Module Structure
+Core modules with their permission scopes:
+- **admission** (create:admission, read:admission, update:admission, delete:admission)
+- **sports** (manage:sports, view:sports)
+- **entrepreneurship** (manage:entrepreneurship, view:entrepreneurship)
+- **research** (manage:research, view:research, publish:research)
+- **academics** (manage:academics, view:academics, grade:academics)
+- **soft_skills** (manage:soft_skills, evaluate:soft_skills)
+- **industry_collaboration** (manage:industry, view:industry, approve:industry)
+
+### 4. File Naming Conventions
+
+**vise-backend:**
+vise-backend/
+├── models/
+│   └── {module}.go              # e.g., admission.go
+├── handlers/
+│   └── {module}_handler.go      # e.g., admission_handler.go
+├── services/
+│   └── {module}_service.go      # e.g., admission_service.go
+├── middleware/
+│   └── auth_middleware.go       # Auth validation
+└── routes/
+└── {module}_routes.go        # e.g., admission_routes.go
+
+**vise-frontend:**
+vise-frontend/
+├── app/
+│   └── {module}/
+│       ├── page.tsx             # Main page
+│       └── [id]/
+│           └── page.tsx         # Detail page
+├── components/
+│   └── {module}/
+│       ├── {Module}Form.tsx    # e.g., AdmissionForm.tsx
+│       └── {Module}List.tsx    # e.g., AdmissionList.tsx
+├── types/
+│   ├── {module}.ts             # e.g., admission.ts
+│   └── auth.ts                 # Auth related types
+└── services/
+├── api.ts                  # API client
+└── auth.ts                 # Auth service client
+
+**auth-service:**
+auth-service/
+├── models/
+│   ├── user.go
+│   ├── role.go
+│   └── permission.go
+├── handlers/
+│   ├── auth_handler.go         # Login, logout, refresh
+│   └── permission_handler.go   # Permission checks
+├── middleware/
+│   └── jwt_middleware.go
+└── services/
+├── jwt_service.go
+└── permission_service.go
+
+### 5. API Endpoint Patterns
+
+**Public Endpoints (auth-service):**
+- POST /api/auth/login
+- POST /api/auth/logout
+- POST /api/auth/refresh
+- POST /api/auth/verify
+
+**Protected Endpoints (vise-backend):**
+- GET /api/v1/{module} - List all (requires read:{module})
+- GET /api/v1/{module}/{id} - Get single (requires read:{module})
+- POST /api/v1/{module} - Create (requires create:{module})
+- PUT /api/v1/{module}/{id} - Update (requires update:{module})
+- DELETE /api/v1/{module}/{id} - Delete (requires delete:{module})
+
+### 6. Authentication Integration
+
+**In vise-backend middleware:**
+```go
+// Every protected route must use
+router.Use(middleware.AuthMiddleware())
+router.Use(middleware.PermissionMiddleware("permission_name"))
+In vise-frontend API calls:
+typescript// Every API call must include
+headers: {
+  'Authorization': `Bearer ${getToken()}`,
+  'X-Branch-ID': getBranchId()
+}
+In auth-service validation:
+go// Token validation returns
+type AuthResponse struct {
+    UserID     string   `json:"user_id"`
+    BranchID   string   `json:"branch_id"`
+    Role       string   `json:"role"`
+    Permissions []string `json:"permissions"`
+}
+7. Type Mappings Across Projects
+PostgreSQLGORM (vise-backend)TypeScript (vise-frontend)Auth-ServiceUUIDuuid.UUIDstringstringVARCHAR(255)stringstringstringTEXTstringstringstringINTEGERint32numberint32BOOLEANboolbooleanboolTIMESTAMPtime.TimeDate | stringtime.TimeJSONBjson.RawMessageany/objectinterface{}
+8. User Roles and Permissions
+Standard Roles (defined in auth-service):
+- SUPER_ADMIN (all permissions)
+- BRANCH_ADMIN (branch-level permissions)
+- TEACHER (academic permissions)
+- STUDENT (limited read permissions)
+- PARENT (child-specific read permissions)
+Permission Format:
+{action}:{resource}:{branch_id}
+Example: create:admission:branch_123
+9. GORM Model Template (vise-backend)
+gotype {Module} struct {
+    ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+    BranchID  uuid.UUID      `gorm:"type:uuid;not null;index" json:"branch_id"`
+    CreatedBy uuid.UUID      `gorm:"type:uuid" json:"created_by"`  // User who created
+    UpdatedBy uuid.UUID      `gorm:"type:uuid" json:"updated_by"`  // User who updated
+    // ... other fields
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+10. Frontend API Service Pattern (vise-frontend)
+typescript// In vise-frontend/services/api.ts
+class APIService {
+  private async request(endpoint: string, options: RequestInit) {
+    const token = await authService.getValidToken(); // Refresh if needed
+    
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Branch-ID': authService.getBranchId(),
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+
+    if (response.status === 401) {
+      await authService.refresh();
+      return this.request(endpoint, options); // Retry
+    }
+
+    return response;
+  }
+}
+11. Database Migration Rules
+Every table MUST include:
+sql-- Standard fields for all tables
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+branch_id UUID NOT NULL,
+created_by UUID REFERENCES users(id),
+updated_by UUID REFERENCES users(id),
+created_at TIMESTAMP DEFAULT NOW(),
+updated_at TIMESTAMP DEFAULT NOW(),
+deleted_at TIMESTAMP,
+
+-- Indexes
+CREATE INDEX idx_{table}_branch_id ON {table}(branch_id);
+CREATE INDEX idx_{table}_deleted_at ON {table}(deleted_at);
+12. Code Generation Instructions
+When asked to create a new feature/module:
+
+Auth-Service First: Define permissions needed
+Database: Create migration with audit fields
+vise-backend:
+
+GORM model with auth fields
+Handler with permission checks
+Service with business logic
+Routes with middleware
+
+
+vise-frontend:
+
+TypeScript types including auth fields
+API service methods
+Components with permission-based UI
+Forms with validation
+
+
+
+13. Security Rules
+ALWAYS:
+
+Validate JWT tokens on every request
+Check branch_id isolation
+Validate user permissions
+Log all data modifications with user ID
+Sanitize all inputs
+Use prepared statements
+Implement rate limiting
+
+NEVER:
+
+Trust frontend validation alone
+Expose internal IDs in URLs
+Store sensitive data in JWT
+Allow cross-branch data access
+Skip permission checks
+
+Current Working Context
+MODULE: [Specify current module]
+TASK: [Specify current task]
+USER_ROLE: [Testing as which role]
+BRANCH: [Specify branch context]
+Common Development Commands
+Complete Module with Auth
+"Create admission module with:
+
+auth-service: Define permissions (create:admission, read:admission, update:admission, delete:admission)
+database: Migration with branch_id and audit fields
+vise-backend: GORM model, handlers with auth checks, routes with middleware
+vise-frontend: Types, API service, forms with role-based field visibility"
+
+Add Authentication to Existing Module
+"Add authentication to sports module:
+
+Define permissions in auth-service
+Add auth middleware to vise-backend routes
+Update vise-frontend to send auth headers
+Add role-based UI elements"
+
+Fix Auth Flow
+"Fix authentication flow for admission module:
+
+Check JWT validation in vise-backend
+Verify permission checks in handlers
+Update vise-frontend to handle 401 responses
+Add token refresh logic"
+
+Multi-Branch Data Isolation
+"Ensure admission module has proper branch isolation:
+
+Add branch_id check in all queries
+Validate users branch access in auth-service
+Update frontend to send branch context
+Add database indexes for performance"
+
+Testing Checklist
+For every feature:
+
+ Test with different user roles
+ Verify branch isolation
+ Check token expiration handling
+ Test permission denied scenarios
+ Verify audit trail (created_by, updated_by)
+ Load test with concurrent users
+
+File References for Context
+When working on any module, always check:
+
+auth-service/models/permission.go - Available permissions
+vise-backend/models/{module}.go - Current GORM model
+vise-backend/middleware/auth_middleware.go - Auth implementation
+vise-frontend/types/{module}.ts - Current TypeScript types
+vise-frontend/services/auth.ts - Frontend auth service
+database/migrations/ - Latest migration files
+
+Error Handling Patterns
+vise-backend errors:
+go// Standard error response
+type ErrorResponse struct {
+    Error   string `json:"error"`
+    Code    string `json:"code"`
+    Details map[string]string `json:"details,omitempty"`
+}
+vise-frontend errors:
+typescript// Standard error handling
+try {
+  const data = await api.createAdmission(formData);
+} catch (error) {
+  if (error.code === 'PERMISSION_DENIED') {
+    // Handle permission error
+  } else if (error.code === 'VALIDATION_ERROR') {
+    // Handle validation error
+  }
+}
+DO NOT
+
+Create endpoints without authentication
+Forget branch_id in queries
+Skip permission checks
+Mix data between branches
+Trust frontend-only validation
+Expose sensitive user data
+Hardcode roles or permissions
+Forget audit fields (created_by, updated_by)
+
+

@@ -1,0 +1,91 @@
+# Exclude main service directories from vise-workspace repository
+vise-frontend/
+vise-backend/
+auth-service/
+ci-cd/gitlab/data/
+ci-cd/gitlab/backups/
+ci-cd/gitlab/logs/
+ci-cd/redis-data/
+ci-cd/postgresql-data/
+vise-cache/redis-cache/
+backups/
+
+# Common development files
+.DS_Store
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node modules (if any scripts use npm)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+*.cache
+
+# Test artifacts
+coverage/
+*.lcov
+
+# Environment and secrets
+*.key
+*.pem
+secrets/
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"\\d users.application\")",
+      "Bash(flyway migrate:*)",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"SELECT application_id, length(application_id) FROM users.application ORDER BY created DESC LIMIT 5;\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"SELECT \n    tc.table_name, \n    kcu.column_name, \n    ccu.table_name AS foreign_table_name,\n    ccu.column_name AS foreign_column_name \nFROM \n    information_schema.table_constraints AS tc \n    JOIN information_schema.key_column_usage AS kcu\n      ON tc.constraint_name = kcu.constraint_name\n      AND tc.table_schema = kcu.table_schema\n    JOIN information_schema.constraint_column_usage AS ccu\n      ON ccu.constraint_name = tc.constraint_name\n      AND ccu.table_schema = tc.table_schema\nWHERE tc.constraint_type = ''FOREIGN KEY'' AND ccu.column_name = ''application_id'';\")",
+      "Bash(make:*)",
+      "Bash(curl:*)",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"\\d codes.institution\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"\nSELECT \n  c.institution_code, \n  c.program_code, \n  c.program_name,\n  c.department_code, \n  COUNT(*) as branch_offerings\nFROM codes.curriculum c\nJOIN codes.branch_institution bi ON c.institution_code = bi.institution_code\nGROUP BY c.institution_code, c.program_code, c.program_name, c.department_code\nORDER BY c.institution_code, c.program_code\nLIMIT 10;\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"\\d users.student\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"SELECT application_id, status, academic_year, state_code, district_code, branch_code, institution_code FROM users.application LIMIT 3;\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"SELECT COUNT(*) FROM users.application;\")",
+      "Bash(PGPASSWORD=vise psql -U postgres -h localhost -d vise -c \"\\d users.sports\")",
+      "Bash(PGPASSWORD=vise psql -h localhost -U postgres -d vise -c \"\\dn+\")",
+      "Bash(PGPASSWORD=vise psql -h localhost -U postgres -d vise -c \"\\dt users.*\")",
+      "Bash(PGPASSWORD=vise psql -h localhost -U postgres -d vise -c \"SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN (''users'', ''codes'') ORDER BY schemaname, tablename;\")",
+      "Bash(PGPASSWORD=vise psql -h localhost -U postgres -d vise -c \"SELECT installed_rank, version, description, success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 10;\")",
+      "Bash(PGPASSWORD=vise psql -h localhost -U postgres -d vise -c \"\nSELECT \n    tablename,\n    schemaname,\n    (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = ''users'' AND table_name = t.tablename) as column_count\nFROM pg_tables t \nWHERE schemaname = ''users'' \nORDER BY tablename;\")",
+      "Bash(PGPASSWORD=vise psql:*)",
+      "Bash(go build:*)",
+      "Bash(./metrics_server)",
+      "Bash(grep:*)",
+      "Bash(./test-full-workflow.sh:*)",
+      "Bash(go run:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

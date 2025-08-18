@@ -1,0 +1,180 @@
+{
+  "student_id": null,
+  "program_code": "PKG",
+  "department_code": "EYE",
+  "application_status": "draft",
+  "academic_year": "2025-26",
+  "state_code": "33",
+  "district_code": "26",
+  "branch_code": "11",
+  "institution_code": "00",
+  "student": {
+    "enrollment_id": null,
+    "roll_no": "2025109",
+    "first_name": "Maria",
+    "middle_name": "S",
+    "surname": "Garcia",
+    "date_of_birth": "10-05-2015",
+    "gender": "Female",
+    "blood_group": "O+",
+    "mother_tongue": "English",
+    "nationality": "India",
+    "religion": "Hindu",
+    "category": "General",
+    "landline_number": "0112345678",
+    "alternate_landline_number": "0223456789",
+    "primary_mobile": "9876543219",
+    "alternative_mobile": "8765432119",
+    "email": "maria.garcia.test@example.com",
+    "academic_year": "2025-26",
+    "communication_address": "123 Main Street, Apartment 4B",
+    "communication_doorno": "4B",
+    "communication_street": "123 Main Street",
+    "communication_city": "Delhi",
+    "communication_district": "New Delhi",
+    "communication_pincode": "110001",
+    "permanent_address": {
+      "address_line1": "123 Main Street",
+      "address_line2": "Apartment 4B",
+      "city": "Delhi",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "110001"
+    },
+    "aadhaar_id": "876543210989",
+    "apaar_id": "8765YXWV2111",
+    "emis_no": "2345678903",
+    "state_code": "33",
+    "district_code": "26",
+    "branch_code": "11",
+    "institution_code": "00"
+  },
+  "father": {
+    "enrollment_id": null,
+    "parent_type": "father",
+    "name": "Carlos Garcia",
+    "qualification": "B.Tech",
+    "profession": "Engineer",
+    "annual_earnings": 1200000,
+    "pan_card": "ABCDE1234H",
+    "contact_number": "9876543220",
+    "email": "carlos.father@example.com",
+    "state_code": "33",
+    "district_code": "01",
+    "branch_code": "09"
+  },
+  "mother": {
+    "enrollment_id": null,
+    "parent_type": "mother",
+    "name": "Ana Garcia",
+    "qualification": "M.Sc.",
+    "profession": "Teacher",
+    "annual_earnings": 800000,
+    "pan_card": "FGHIJ5678M",
+    "contact_number": "8765432120",
+    "email": "ana.mother@example.com",
+    "state_code": "33",
+    "district_code": "01",
+    "branch_code": "09"
+  },
+  "siblings": [
+    {
+      "enrollment_id": null,
+      "name": "Jane Doe",
+      "age": 15,
+      "gender": "female",
+      "school": "Delhi Public School",
+      "class": "10th",
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    }
+  ],
+  "academic_data": {
+    "program_code": "S03",
+    "department_code": "PRI",
+    "institution_code": "00",
+    "entrance_score": 0,
+    "ai_score": 0,
+    "last_institution": {
+      "name": "Previous School",
+      "address": "Previous School Address",
+      "board": "CBSE"
+    },
+    "academic_records": [
+      {
+        "exam_name": "5th Standard",
+        "institution": "Delhi Public School",
+        "board": "CBSE",
+        "year": 2022,
+        "register_no": "DPS20220045",
+        "percentage": 94.5
+      }
+    ]
+  },
+  "documents": [
+    {
+      "document_type": "birth_certificate",
+      "document_name": "Birth Certificate",
+      "document_url": "https://storage.example.com/documents/birth_certificate.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "aadhaar",
+      "document_name": "Aadhaar Card",
+      "document_url": "https://storage.example.com/documents/aadhaar_card.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "aapaar",
+      "document_name": "APAAR ID",
+      "document_url": "https://storage.example.com/documents/apaar_id.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "photograph",
+      "document_name": "Passport Size Photograph",
+      "document_url": "https://storage.example.com/documents/student_photo.jpg",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "previous_marksheet",
+      "document_name": "Previous School Marksheet",
+      "document_url": "https://storage.example.com/documents/previous_marksheet.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "conduct_certificate",
+      "document_name": "Conduct Certificate",
+      "document_url": "https://storage.example.com/documents/conduct_certificate.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "transfer_certificate",
+      "document_name": "Transfer Certificate",
+      "document_url": "https://storage.example.com/documents/transfer_certificate.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    }
+  ]
+}

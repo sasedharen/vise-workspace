@@ -1,0 +1,223 @@
+version: '3.8'
+
+# Monitoring Stack for VISE CI/CD Pipeline
+# Supports 500 developers with comprehensive observability
+
+services:
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: gitlab-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:10.1.4
+    container_name: gitlab-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=ViseAdmin2025!
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  # AlertManager for alert handling
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: gitlab-alertmanager
+    restart: always
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: gitlab-node-exporter
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring
+
+  # Docker metrics exporter
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: gitlab-cadvisor
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    networks:
+      - monitoring
+
+  # Redis Exporter for GitLab Redis monitoring
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.54.0
+    container_name: gitlab-redis-exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    networks:
+      - monitoring
+      - gitlab-network
+
+  # PostgreSQL Exporter for GitLab database monitoring
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: gitlab-postgres-exporter
+    restart: always
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://gitlab:gitlab_db_password@postgresql:5432/gitlabhq_production?sslmode=disable
+    networks:
+      - monitoring
+      - gitlab-network
+
+  # GitLab Runner monitoring
+  gitlab-runner-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: gitlab-runner-exporter
+    restart: always
+    ports:
+      - "9101:9100"
+    volumes:
+      - ../runner-config-1:/runner-config:ro
+    command:
+      - '--path.rootfs=/rootfs'
+      - '--collector.textfile.directory=/runner-config'
+    networks:
+      - monitoring
+
+  # Log aggregation with Loki
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: gitlab-loki
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
+  # Log collector
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: gitlab-promtail
+    restart: always
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ../gitlab/logs:/gitlab-logs:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    container_name: gitlab-jaeger
+    restart: always
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring
+
+  # Pipeline metrics collector
+  pipeline-metrics:
+    image: alpine:3.19
+    container_name: gitlab-pipeline-metrics
+    restart: always
+    volumes:
+      - ./scripts/collect-metrics.sh:/usr/local/bin/collect-metrics.sh:ro
+    command: >
+      sh -c "
+        apk add --no-cache curl jq &&
+        chmod +x /usr/local/bin/collect-metrics.sh &&
+        while true; do
+          /usr/local/bin/collect-metrics.sh;
+          sleep 300;
+        done
+      "
+    networks:
+      - monitoring
+      - gitlab-network
+
+networks:
+  monitoring:
+    driver: bridge
+  gitlab-network:
+    external: true
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  loki-data:

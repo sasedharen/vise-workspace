@@ -1,0 +1,186 @@
+# VISE Project - Windsurf Quick Commands
+
+## Full Stack Feature Creation
+
+### Create Complete Module with Auth
+Create a complete sports module for VISE system:
+
+In auth-service: Add permissions (create:sports, read:sports, update:sports, delete:sports)
+In database: Create migration with athlete table (name, sport_type, achievements, branch_id, created_by, audit fields)
+In vise-backend: Create GORM model, handlers with JWT auth, service layer, routes with auth middleware
+In vise-frontend: Create types, API service methods, list page, form with validation, role-based UI
+
+
+### Add Field Across All Layers
+Add payment_status field to admission:
+
+Database migration to add payment_status (enum: pending, completed, failed)
+Update vise-backend admission.go model
+Update vise-frontend admission.ts types
+Add field to AdmissionForm.tsx with validation
+Update admission handler to process payment_status
+
+
+## Authentication & Authorization
+
+### Add Permission Check
+Add permission check for deleting admission records:
+
+In auth-service: Add delete:admission permission
+In vise-backend: Add middleware.PermissionMiddleware("delete:admission") to DELETE route
+In vise-frontend: Show delete button only if user has permission
+
+
+### Fix Token Refresh Flow
+Fix token refresh in vise-frontend:
+
+Update auth.ts service to handle token expiry
+Add interceptor to retry failed requests after refresh
+Update API service to queue requests during refresh
+
+
+## Database Operations
+
+### Add Multi-Branch Support
+Ensure sports module supports multi-branch:
+
+Add branch_id to all sports tables
+Update GORM models in vise-backend with BranchID field
+Add branch filter to all queries
+Update vise-frontend to send X-Branch-ID header
+
+
+### Create Migration with Audit
+Create migration for research module with audit fields:
+CREATE TABLE research_projects (
+id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+branch_id UUID NOT NULL,
+title VARCHAR(255) NOT NULL,
+created_by UUID REFERENCES users(id),
+updated_by UUID REFERENCES users(id),
+created_at TIMESTAMP DEFAULT NOW(),
+updated_at TIMESTAMP DEFAULT NOW(),
+deleted_at TIMESTAMP
+);
+
+## Backend (vise-backend) Specific
+
+### Create Handler with Auth
+Create admission handler in vise-backend with JWT validation:
+
+Add AuthMiddleware to routes
+Extract user from context
+Add created_by field from JWT claims
+Validate branch_id matches user's branch
+Return proper error codes
+
+
+### Add Service Layer
+Create admission service in vise-backend/services/:
+
+Implement business logic separate from handler
+Add transaction support
+Include validation logic
+Add audit logging
+
+
+## Frontend (vise-frontend) Specific
+
+### Create Form with Permissions
+Create AdmissionForm in vise-frontend with role-based fields:
+
+Import useAuth hook for user role
+Show/hide fields based on permissions
+Add Zod validation schema
+Handle API errors with proper messages
+Add loading states
+
+
+### Add API Integration
+Add admission API integration in vise-frontend/services/api.ts:
+
+Create methods for all CRUD operations
+Include auth headers from auth service
+Handle token refresh on 401
+Add request/response types
+
+
+## Auth Service Specific
+
+### Define Module Permissions
+Add permissions for academics module in auth-service:
+
+Define in permissions.yaml
+Create permission constants
+Add to role mappings
+Update permission check endpoint
+
+
+### Create Role
+Create COORDINATOR role in auth-service with permissions:
+
+read:admission
+update:admission
+read:academics
+create:sports
+
+
+## Testing Commands
+
+### Test Auth Flow
+Test complete authentication flow:
+
+Login via auth-service/api/auth/login
+Store JWT token
+Call vise-backend protected endpoint
+Verify permission check
+Test token refresh
+
+
+### Test Branch Isolation
+Verify branch isolation for admission module:
+
+Create records with different branch_ids
+Login as branch_001 admin
+Verify only branch_001 records are visible
+Try to access branch_002 record (should fail)
+
+
+## Debugging Commands
+
+### Check Permission Issue
+Debug permission denied error:
+
+Check JWT token claims in auth-service logs
+Verify permission exists in auth-service
+Check middleware in vise-backend
+Verify frontend sends correct headers
+
+
+### Fix CORS Issues
+Fix CORS between vise-frontend and vise-backend:
+
+Add CORS middleware in vise-backend
+Configure allowed origins
+Add credentials: 'include' in frontend
+Check auth headers are allowed
+
+
+## Performance Optimization
+
+### Add Caching
+Add Redis caching to admission module:
+
+Cache permission checks in auth-service
+Cache frequently accessed data in vise-backend
+Add cache invalidation on updates
+Update vise-frontend to use cached responses
+
+
+### Optimize Queries
+Optimize admission list query for 10M users:
+
+Add indexes on branch_id and created_at
+Implement pagination in vise-backend
+Add infinite scroll in vise-frontend
+Use database views for complex queries

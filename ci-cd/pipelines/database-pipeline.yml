@@ -1,0 +1,473 @@
+# Database Migration Pipeline for VISE Project
+# Handles Flyway migrations, database backups, and schema validation
+
+variables:
+  FLYWAY_VERSION: "9.22.3"
+  POSTGRES_VERSION: "15"
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "vise"
+  DB_USER: "postgres"
+  DB_PASSWORD: "vise"
+  FLYWAY_BASELINE_ON_MIGRATE: "true"
+  FLYWAY_VALIDATE_ON_MIGRATE: "true"
+
+# Services for database operations
+services:
+  - name: postgres:15-alpine
+    alias: postgres
+    variables:
+      POSTGRES_DB: $DB_NAME
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $DB_PASSWORD
+
+stages:
+  - validate
+  - backup
+  - migrate
+  - verify
+  - rollback
+
+# Base template for database jobs
+.db-template: &db-template
+  image: flyway/flyway:$FLYWAY_VERSION-alpine
+  tags:
+    - docker
+    - database-runner
+  variables:
+    FLYWAY_URL: "jdbc:postgresql://$DB_HOST:$DB_PORT/$DB_NAME"
+    FLYWAY_USER: $DB_USER
+    FLYWAY_PASSWORD: $DB_PASSWORD
+    FLYWAY_LOCATIONS: "filesystem:/flyway/sql"
+  before_script:
+    - apk add --no-cache postgresql-client curl
+    - until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do sleep 1; done
+
+###########################################
+# VALIDATION STAGE
+###########################################
+
+validate-migrations:
+  <<: *db-template
+  stage: validate
+  script:
+    # Copy migration files to Flyway location
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Validate migration files
+    - flyway validate
+    
+    # Check for migration naming conflicts
+    - |
+      duplicates=$(ls /flyway/sql/ | cut -d'_' -f1 | sort | uniq -d)
+      if [ -n "$duplicates" ]; then
+        echo "Duplicate migration versions found: $duplicates"
+        exit 1
+      fi
+    
+    # Validate SQL syntax (basic check)
+    - |
+      for file in /flyway/sql/*.sql; do
+        if [ -f "$file" ]; then
+          echo "Validating syntax for: $(basename $file)"
+          psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f "$file" --dry-run || echo "Warning: Could not validate $file"
+        fi
+      done
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+check-migration-dependencies:
+  <<: *db-template
+  stage: validate
+  script:
+    # Check if all referenced tables/columns exist in previous migrations
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Create dependency analysis script
+    - |
+      cat > check_dependencies.py << 'EOF'
+      import os
+      import re
+      import sys
+      
+      def extract_references(sql_content):
+          # Extract table references, column references, etc.
+          tables = re.findall(r'CREATE TABLE\s+(\w+\.\w+|\w+)', sql_content, re.IGNORECASE)
+          alter_tables = re.findall(r'ALTER TABLE\s+(\w+\.\w+|\w+)', sql_content, re.IGNORECASE)
+          references = re.findall(r'REFERENCES\s+(\w+\.\w+|\w+)', sql_content, re.IGNORECASE)
+          return tables, alter_tables, references
+      
+      migration_files = sorted([f for f in os.listdir('/flyway/sql') if f.endswith('.sql')])
+      created_tables = set()
+      
+      for migration_file in migration_files:
+          with open(f'/flyway/sql/{migration_file}', 'r') as f:
+              content = f.read()
+              tables, alters, refs = extract_references(content)
+              
+              # Add created tables to our set
+              created_tables.update(tables)
+              
+              # Check if altered tables exist
+              for table in alters:
+                  if table not in created_tables:
+                      print(f"Warning: {migration_file} alters table {table} which may not exist yet")
+              
+              # Check if referenced tables exist
+              for table in refs:
+                  if table not in created_tables:
+                      print(f"Warning: {migration_file} references table {table} which may not exist yet")
+      
+      print("Dependency check completed")
+      EOF
+    
+    - python3 check_dependencies.py
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+###########################################
+# BACKUP STAGE
+###########################################
+
+backup-database:
+  image: postgres:15-alpine
+  stage: backup
+  tags:
+    - docker
+    - database-runner
+  variables:
+    BACKUP_TIMESTAMP: $(date +"%Y%m%d_%H%M%S")
+  script:
+    # Wait for database to be ready
+    - until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do sleep 1; done
+    
+    # Create backup directory
+    - mkdir -p backups
+    
+    # Create full database backup
+    - pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME -v -f "backups/vise_backup_${CI_COMMIT_SHORT_SHA}_$(date +%Y%m%d_%H%M%S).sql"
+    
+    # Create schema-only backup
+    - pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME -s -v -f "backups/vise_schema_${CI_COMMIT_SHORT_SHA}_$(date +%Y%m%d_%H%M%S).sql"
+    
+    # Create compressed backup
+    - pg_dump -h $DB_HOST -U $DB_USER -d $DB_NAME -Fc -v -f "backups/vise_backup_${CI_COMMIT_SHORT_SHA}_$(date +%Y%m%d_%H%M%S).dump"
+    
+    # List backup files
+    - ls -la backups/
+    
+    # Verify backup integrity
+    - pg_restore --list "backups/vise_backup_${CI_COMMIT_SHORT_SHA}_$(date +%Y%m%d_%H%M%S).dump" > /dev/null
+  artifacts:
+    paths:
+      - backups/
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_TAG
+
+###########################################
+# MIGRATION STAGE
+###########################################
+
+migrate-development:
+  <<: *db-template
+  stage: migrate
+  variables:
+    ENVIRONMENT: "development"
+    FLYWAY_BASELINE_DESCRIPTION: "Development baseline"
+  script:
+    # Copy migration files
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Show current database info
+    - flyway info
+    
+    # Run migrations
+    - flyway migrate
+    
+    # Show migration results
+    - flyway info
+    
+    # Validate the final state
+    - flyway validate
+  environment:
+    name: development-db
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+migrate-staging:
+  <<: *db-template
+  stage: migrate
+  variables:
+    ENVIRONMENT: "staging"
+    FLYWAY_BASELINE_DESCRIPTION: "Staging baseline"
+  script:
+    # Copy migration files
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Show current state
+    - flyway info
+    
+    # Run migrations with more verbose output
+    - flyway -X migrate
+    
+    # Show final state
+    - flyway info
+    
+    # Validate schema integrity
+    - flyway validate
+  environment:
+    name: staging-db
+  needs:
+    - backup-database
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  when: manual
+
+migrate-production:
+  <<: *db-template
+  stage: migrate
+  variables:
+    ENVIRONMENT: "production"
+    FLYWAY_BASELINE_DESCRIPTION: "Production baseline"
+    FLYWAY_VALIDATE_ON_MIGRATE: "true"
+    FLYWAY_CLEAN_DISABLED: "true"
+  script:
+    # Copy migration files
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Show current state
+    - flyway info
+    
+    # Validate before migration
+    - flyway validate
+    
+    # Run migrations with maximum safety
+    - flyway -X migrate
+    
+    # Final validation
+    - flyway info
+    - flyway validate
+    
+    # Generate migration report
+    - |
+      cat > migration_report.txt << EOF
+      Migration completed at: $(date)
+      Environment: Production
+      Git Commit: $CI_COMMIT_SHA
+      Git Branch: $CI_COMMIT_BRANCH
+      Flyway Version: $FLYWAY_VERSION
+      Database: $DB_NAME
+      EOF
+    
+    - flyway info >> migration_report.txt
+  artifacts:
+    paths:
+      - migration_report.txt
+    expire_in: 1 month
+  environment:
+    name: production-db
+  needs:
+    - migrate-staging
+    - backup-database
+  rules:
+    - if: $CI_COMMIT_TAG
+  when: manual
+
+###########################################
+# VERIFICATION STAGE
+###########################################
+
+verify-schema:
+  <<: *db-template
+  stage: verify
+  script:
+    # Copy migration files
+    - cp -r vise-backend/db/migrations/* /flyway/sql/
+    
+    # Verify all migrations applied successfully
+    - flyway info
+    
+    # Check database structure
+    - |
+      psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+      SELECT schemaname, tablename, tableowner 
+      FROM pg_tables 
+      WHERE schemaname IN ('users', 'codes') 
+      ORDER BY schemaname, tablename;"
+    
+    # Verify foreign key constraints
+    - |
+      psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+      SELECT 
+        tc.constraint_name,
+        tc.table_name,
+        kcu.column_name,
+        ccu.table_name AS foreign_table_name,
+        ccu.column_name AS foreign_column_name
+      FROM information_schema.table_constraints AS tc
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+      JOIN information_schema.constraint_column_usage AS ccu
+        ON ccu.constraint_name = tc.constraint_name
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+      ORDER BY tc.table_name;"
+    
+    # Check for any failed migrations
+    - |
+      failed_migrations=$(flyway info | grep -c "Failed" || echo "0")
+      if [ "$failed_migrations" -gt 0 ]; then
+        echo "Found $failed_migrations failed migrations"
+        exit 1
+      fi
+    
+    # Verify critical tables exist
+    - |
+      critical_tables=("users.application" "users.student" "codes.institution" "codes.curriculum")
+      for table in "${critical_tables[@]}"; do
+        count=$(psql -h $DB_HOST -U $DB_USER -d $DB_NAME -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema||'.'||table_name = '$table'")
+        if [ "$count" -eq 0 ]; then
+          echo "Critical table $table is missing"
+          exit 1
+        fi
+      done
+  needs:
+    - migrate-development
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+performance-check:
+  image: postgres:15-alpine
+  stage: verify
+  tags:
+    - docker
+    - database-runner
+  script:
+    # Wait for database
+    - until pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USER; do sleep 1; done
+    
+    # Check query performance on key tables
+    - |
+      psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+      EXPLAIN ANALYZE SELECT COUNT(*) FROM users.application;
+      EXPLAIN ANALYZE SELECT COUNT(*) FROM codes.curriculum;
+      EXPLAIN ANALYZE SELECT COUNT(*) FROM users.student WHERE institution_code = '00';
+      "
+    
+    # Check index usage
+    - |
+      psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+      SELECT 
+        schemaname,
+        tablename,
+        indexname,
+        idx_tup_read,
+        idx_tup_fetch
+      FROM pg_stat_user_indexes
+      WHERE schemaname IN ('users', 'codes')
+      ORDER BY idx_tup_read DESC;"
+  allow_failure: true
+  needs:
+    - migrate-development
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+###########################################
+# ROLLBACK STAGE
+###########################################
+
+prepare-rollback:
+  <<: *db-template
+  stage: rollback
+  script:
+    # Create rollback scripts
+    - mkdir -p rollback
+    
+    # Generate rollback information
+    - |
+      cat > rollback/rollback_info.txt << EOF
+      Rollback prepared for commit: $CI_COMMIT_SHA
+      Previous state can be restored using backup files
+      
+      To rollback manually:
+      1. Stop the application
+      2. Restore database from backup
+      3. Restart application with previous version
+      
+      Available backups:
+      EOF
+    
+    - ls -la backups/ >> rollback/rollback_info.txt
+    
+    # Create rollback script
+    - |
+      cat > rollback/rollback.sh << 'EOF'
+      #!/bin/bash
+      
+      # VISE Database Rollback Script
+      # Usage: ./rollback.sh <backup_file>
+      
+      set -e
+      
+      if [ $# -eq 0 ]; then
+        echo "Usage: $0 <backup_file>"
+        echo "Available backups:"
+        ls -la ../backups/
+        exit 1
+      fi
+      
+      BACKUP_FILE="../backups/$1"
+      
+      if [ ! -f "$BACKUP_FILE" ]; then
+        echo "Backup file not found: $BACKUP_FILE"
+        exit 1
+      fi
+      
+      echo "Rolling back database using: $BACKUP_FILE"
+      
+      # Drop and recreate database
+      dropdb -h $DB_HOST -U $DB_USER $DB_NAME
+      createdb -h $DB_HOST -U $DB_USER $DB_NAME
+      
+      # Restore from backup
+      if [[ "$BACKUP_FILE" == *.dump ]]; then
+        pg_restore -h $DB_HOST -U $DB_USER -d $DB_NAME "$BACKUP_FILE"
+      else
+        psql -h $DB_HOST -U $DB_USER -d $DB_NAME -f "$BACKUP_FILE"
+      fi
+      
+      echo "Rollback completed successfully"
+      EOF
+    
+    - chmod +x rollback/rollback.sh
+  artifacts:
+    paths:
+      - rollback/
+    expire_in: 1 month
+  needs:
+    - backup-database
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  when: manual
+
+###########################################
+# WORKFLOW RULES
+###########################################
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - if: $CI_COMMIT_TAG
+    - when: never

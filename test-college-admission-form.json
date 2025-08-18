@@ -1,0 +1,193 @@
+{
+  "student_id": null,
+  "program_code": "PKG",
+  "department_code": "EYE",
+  "application_status": "draft",
+  "academic_year": "2025-26",
+  "state_code": "33",
+  "district_code": "26",
+  "branch_code": "11",
+  "institution_code": "04",
+  "student": {
+    "enrollment_id": null,
+    "roll_no": "2025103",
+    "first_name": "Rajesh",
+    "middle_name": "Kumar",
+    "surname": "Sharma",
+    "date_of_birth": "15-08-2005",
+    "gender": "Male",
+    "blood_group": "B+",
+    "mother_tongue": "Hindi",
+    "nationality": "India",
+    "religion": "Hindu",
+    "category": "General",
+    "landline_number": "0112345679",
+    "alternate_landline_number": "0223456790",
+    "primary_mobile": "9234567891",
+    "alternative_mobile": "8765432110",
+    "email": "rajesh.sharma.college@example.com",
+    "academic_year": "2025-26",
+    "communication_address": "456 College Street, Apartment 7A",
+    "communication_doorno": "7A",
+    "communication_street": "456 College Street",
+    "communication_city": "Mumbai",
+    "communication_district": "Mumbai",
+    "communication_pincode": "400001",
+    "permanent_address": {
+      "address_line1": "456 College Street",
+      "address_line2": "Apartment 7A",
+      "city": "Mumbai",
+      "district": "Mumbai",
+      "state": "Maharashtra",
+      "pincode": "400001"
+    },
+    "aadhaar_id": "987654321098",
+    "apaar_id": "9876ZYXW3210",
+    "emis_no": "3456789012",
+    "state_code": "33",
+    "district_code": "26",
+    "branch_code": "11",
+    "institution_code": "04"
+  },
+  "father": {
+    "first_name": "Suresh",
+    "middle_name": "Kumar",
+    "surname": "Sharma",
+    "date_of_birth": "20-03-1975",
+    "education": "Graduate",
+    "occupation": "Business",
+    "contact_number": "9876543211",
+    "email": "suresh.sharma.college@example.com",
+    "income": 850000,
+    "pan_card": "ABCDE1234G",
+    "aadhaar_id": "543210987655",
+    "enrollment_id": null,
+    "state_code": "33",
+    "district_code": "26",
+    "branch_code": "11"
+  },
+  "mother": {
+    "first_name": "Priya",
+    "middle_name": "",
+    "surname": "Sharma",
+    "date_of_birth": "25-07-1978",
+    "education": "Graduate", 
+    "occupation": "Teacher",
+    "contact_number": "9876543212",
+    "email": "priya.sharma.college@example.com",
+    "income": 450000,
+    "pan_card": "FGHIJ5678H",
+    "aadhaar_id": "765432109876",
+    "enrollment_id": null,
+    "state_code": "33",
+    "district_code": "26",
+    "branch_code": "11"
+  },
+  "siblings": [
+    {
+      "first_name": "Pooja",
+      "middle_name": "",
+      "surname": "Sharma",
+      "relationship": "Sister",
+      "date_of_birth": "10-12-2008",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "26",
+      "branch_code": "11"
+    }
+  ],
+  "academic_data": {
+    "marks": [
+      {
+        "exam_name": "Class X Board Exam",
+        "institution": "St. Mary's High School",
+        "board": "CBSE",
+        "year": 2021,
+        "register_no": "CBSE20210456",
+        "percentage": 91.2
+      },
+      {
+        "exam_name": "Class XII Board Exam",
+        "institution": "St. Mary's Senior Secondary School", 
+        "board": "CBSE",
+        "year": 2023,
+        "register_no": "CBSE20230456",
+        "percentage": 88.7
+      }
+    ]
+  },
+  "documents": [
+    {
+      "document_type": "birth_certificate",
+      "document_name": "Birth Certificate",
+      "document_url": "https://storage.example.com/documents/birth_certificate_college.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "aadhaar",
+      "document_name": "Aadhaar Card",
+      "document_url": "https://storage.example.com/documents/aadhaar_card_college.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "aapaar",
+      "document_name": "APAAR ID",
+      "document_url": "https://storage.example.com/documents/apaar_id_college.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "photograph",
+      "document_name": "Passport Size Photograph",
+      "document_url": "https://storage.example.com/documents/student_photo_college.jpg",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "10th_marksheet",
+      "document_name": "Class X Marksheet",
+      "document_url": "https://storage.example.com/documents/10th_marksheet.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "12th_marksheet",
+      "document_name": "Class XII Marksheet",
+      "document_url": "https://storage.example.com/documents/12th_marksheet.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "conduct_certificate",
+      "document_name": "Conduct Certificate",
+      "document_url": "https://storage.example.com/documents/conduct_certificate_college.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    },
+    {
+      "document_type": "migration_certificate",
+      "document_name": "Migration Certificate",
+      "document_url": "https://storage.example.com/documents/migration_certificate.pdf",
+      "enrollment_id": null,
+      "state_code": "33",
+      "district_code": "01",
+      "branch_code": "09"
+    }
+  ]
+}

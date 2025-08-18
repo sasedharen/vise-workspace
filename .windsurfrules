@@ -1,0 +1,227 @@
+# School Management System - Development Rules
+
+## Project Overview
+This is a large-scale school management system serving 10M+ users across 1000 branches.
+Tech Stack:
+- Backend: Golang with Gin framework and GORM ORM
+- Frontend: Next.js with TypeScript
+- Auth Service: JWT tokens, Role-based access control (RBAC), OAuth 2.0
+- Database: PostgreSQL with Flyway migrations
+- Redis: For caching and session management
+
+## Project Structure
+root/
+├── vise-backend/          # Golang backend with GORM
+│   ├── internal/          # Core business logic
+│   │   ├── admissions/    # Module-specific code
+│   │   │   ├── domain/    # Domain models
+│   │   │   ├── handler/   # HTTP handlers
+│   │   │   ├── repository/# Data access
+│   │   │   ├── service/   # Business logic
+│   │   │   └── routes/    # API routes
+│   ├── db/migrations/     # Flyway database migrations
+│   ├── cache/             # Redis cache
+├── vise-frontend/         # Next.js TypeScript frontend
+│   ├── src/
+│   │   ├── components/    # UI components
+│   │   ├── types/         # TypeScript interfaces
+├── auth-service/          # Authentication & Authorization service
+
+## Critical Development Rules
+
+### 1. SCHEMA SYNCHRONIZATION RULE (MOST IMPORTANT)
+Whenever creating or modifying any data structure:
+1. FIRST define/update the database schema in `vise-backend/db/migrations/`
+2. THEN create/update the GORM model in `vise-backend/internal/{module}/domain/`
+3. FINALLY create/update TypeScript interfaces in `vise-frontend/src/types/`
+4. All three MUST match exactly in terms of fields and types
+
+### 2. DATABASE ANALYSIS AND TROUBLESHOOTING (NEW)
+When dealing with database-related analysis and changes:
+1. ALWAYS directly access the database using `PGPASSWORD=vise psql -U postgres -h localhost -d vise` statements to verify the actual schema structure
+2. Check the db/migrations directory for Flyway migration files to understand schema evolution
+3. Use direct SQL queries to verify column existence, constraints, and indexes when troubleshooting schema-related issues
+4. Compare actual database state with migration files when resolving discrepancies
+5. Run `\d table_name` in psql to inspect the actual table structure before making changes
+
+### 3. Module Structure
+The system has 7 core modules:
+- admission (student admissions and enrollment)
+- management (general school management, branch creation, school key performance indicators)
+- administration (general school administration within each branch)
+- finance (school finance management)
+- sports (sports activities and achievements)
+- entrepreneurship (startup/business initiatives)
+- research (research projects and publications)
+- academics (courses, grades, attendance)
+- soft_skills (personality development, communication)
+- industry_collaboration (internships, placements, industry projects)
+
+When working on any module, ensure changes are reflected in all three layers.
+
+### 4. File Naming Conventions
+- Backend: 
+  - Models: `vise-backend/internal/{module}/domain/{entity}.go` (e.g., application.go)
+  - Handlers: `vise-backend/internal/{module}/handler/{entity}_handler.go`
+  - Services: `vise-backend/internal/{module}/service/{entity}_service.go`
+  - Repositories: `vise-backend/internal/{module}/repository/{entity}_repository.go`
+- Frontend:
+  - Pages: `vise-frontend/src/pages/{module}/index.tsx`
+  - Components: `vise-frontend/src/components/{module}/[ComponentName].tsx`
+  - Types: `vise-frontend/src/types/index.ts` (currently all types are in one file)
+- Database:
+  - Migrations: `vise-backend/db/migrations/V{number}__{description}.sql`
+
+### 5. Type Mappings
+When creating fields, use these consistent type mappings:
+
+| PostgreSQL       | GORM (Go)           | TypeScript      | Form Input Type |
+|-----------------|---------------------|-----------------|-----------------|
+| VARCHAR(255)    | string              | string          | text           |
+| TEXT            | string              | string          | textarea       |
+| INTEGER         | int/int32           | number          | number         |
+| BIGINT          | int64               | number          | number         |
+| DECIMAL         | float64             | number          | number         |
+| BOOLEAN         | bool                | boolean         | checkbox       |
+| DATE            | time.Time           | Date \| string  | date           |
+| TIMESTAMP       | time.Time           | Date \| string  | datetime-local |
+| UUID            | string/uuid.UUID    | string          | hidden/text    |
+| JSONB           | json.RawMessage     | any/object      | json-editor    |
+
+### 6. GORM Model Template
+When creating a new GORM model, follow this pattern:
+```go
+type {Module} struct {
+    ID        uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+    // ... other fields
+    BranchID  string         `json:"branch_id" db:"branch_id" gorm:"column:branch_id"`
+    CreatedAt time.Time      `json:"created_at"`
+    UpdatedAt time.Time      `json:"updated_at"`
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+```
+
+### 7. API Endpoint Pattern
+
+GET /api/v1/{module} - List all
+GET /api/v1/{module}/{id} - Get single
+POST /api/v1/{module} - Create new
+PUT /api/v1/{module}/{id} - Update
+DELETE /api/v1/{module}/{id} - Delete
+
+### 8. Frontend Form Generation
+When creating forms:
+
+Import types from vise-frontend/src/types/index.ts
+Use react-hook-form with zod validation
+Include loading states and error handling
+Add success/error toast notifications
+Use semantic HTML5 form elements
+Must be viewable on all devices (mobile, tablet, desktop)
+Must be responsive and mobile-friendly
+
+### 9. Database Migration Rules
+
+Always create UP and DOWN migrations
+Include IF EXISTS/IF NOT EXISTS checks
+Add proper indexes for foreign keys and frequently queried fields
+Consider performance for 10M+ users (add appropriate indexes)
+
+### 10. Multi-tenancy Consideration
+EVERY table must include:
+
+branch_id (UUID) - for branch isolation
+Add index on branch_id for performance
+All queries must filter by branch_id
+
+### 11. Code Generation Instructions
+When asked to create a new feature/module:
+
+Generate complete database migration first
+Generate GORM model with proper tags
+Generate TypeScript interface matching GORM model
+Generate API handlers with all CRUD operations
+Generate Next.js pages with forms
+Generate validation schemas (Zod for frontend, Go validator for backend)
+
+## Current Working Context
+MODULE: [Specify current module when starting work]
+TASK: [Specify current task]
+BRANCH: [Specify git branch if relevant]
+
+## Common Tasks Commands
+
+### Creating a New Module
+"Create a complete {module_name} module with:
+
+Database schema with tables for {specify requirements}
+GORM models matching the schema
+Full CRUD API in backend
+TypeScript types for frontend
+Next.js form and list pages
+Proper validation on both frontend and backend"
+
+### Adding a Field
+"Add {field_name} field of type {type} to {module}:
+
+Add to database migration
+Update GORM model
+Update TypeScript interface
+Add to form with validation
+Update API to handle the new field"
+
+### Performance Optimization
+"Optimize {module} for 10M+ users:
+
+Add appropriate database indexes
+Implement pagination in backend
+Add caching where appropriate
+Implement lazy loading in frontend
+Add bulk operations support"
+
+## Important Reminders
+
+ALWAYS maintain consistency across all three layers
+NEVER create a model without corresponding migration and types
+ALWAYS consider multi-tenancy (branch_id)
+ALWAYS add proper validation
+ALWAYS handle errors gracefully
+ALWAYS consider performance for millions of users
+ALWAYS include created_at, updated_at, deleted_at fields
+
+## File References for Context
+When working on any module, always check:
+
+vise-backend/internal/{module}/domain/ - Current GORM models
+vise-frontend/src/types/index.ts - Current TypeScript types
+vise-backend/db/migrations/ - Latest migration for the module
+vise-backend/internal/{module}/handler/ - Current API implementation
+vise-frontend/src/components/{module}/ - Current UI implementation
+
+## Testing Requirements
+For each feature, generate:
+
+Backend unit tests in vise-backend/internal/{module}/tests/
+API integration tests
+Frontend component tests
+E2E tests for critical flows
+
+## DO NOT
+
+Create models without migrations
+Add fields to frontend without backend support
+Forget branch_id in any new table
+Use different field names across layers
+Ignore performance implications
+Skip validation
+Forget error handling
+
+## Auth Service Integration
+
+When implementing features that require authentication:
+
+1. Ensure proper JWT validation through auth-service
+2. Implement role-based access control for all endpoints
+3. Follow the OAuth 2.0 flow for external authentication
+4. Store user permissions in auth-service database
+5. Validate all requests against user permissions

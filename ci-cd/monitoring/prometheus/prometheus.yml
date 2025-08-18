@@ -1,0 +1,184 @@
+# Prometheus configuration for GitLab CI/CD monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'gitlab-cicd'
+    environment: 'production'
+
+# Rule files
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # cAdvisor (container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 10s
+
+  # GitLab internal metrics
+  - job_name: 'gitlab'
+    static_configs:
+      - targets: ['gitlab:80']
+    metrics_path: /-/metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # GitLab Runners
+  - job_name: 'gitlab-runner-1'
+    static_configs:
+      - targets: ['gitlab-runner-1:9252']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'gitlab-runner-2'
+    static_configs:
+      - targets: ['gitlab-runner-2:9252']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  - job_name: 'gitlab-runner-3'
+    static_configs:
+      - targets: ['gitlab-runner-3:9252']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 15s
+
+  # PostgreSQL metrics
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # Docker daemon metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s
+
+  # Custom application metrics
+  - job_name: 'vise-backend'
+    static_configs:
+      - targets: ['backend:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Pipeline performance metrics
+  - job_name: 'gitlab-pipelines'
+    gitlab_sd_configs:
+      - server: 'http://gitlab'
+        token: 'your-gitlab-token-here'
+        project_id: 'project-id'
+    relabel_configs:
+      - source_labels: [__meta_gitlab_project_name]
+        target_label: project
+      - source_labels: [__meta_gitlab_runner_id]
+        target_label: runner_id
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+# Remote write for long-term storage (optional)
+# remote_write:
+#   - url: "http://your-remote-storage/api/v1/write"
+
+# Recording rules for performance optimization
+recording_rules:
+  # GitLab CI/CD specific recording rules
+  - name: gitlab_cicd_recording_rules
+    interval: 30s
+    rules:
+      # Pipeline success rate
+      - record: gitlab:pipeline_success_rate_5m
+        expr: |
+          rate(gitlab_pipeline_builds_total{job="gitlab",status="success"}[5m]) /
+          rate(gitlab_pipeline_builds_total{job="gitlab"}[5m])
+
+      # Runner utilization
+      - record: gitlab:runner_utilization_5m
+        expr: |
+          avg by (runner) (
+            rate(gitlab_runner_jobs_total[5m])
+          )
+
+      # Build queue time
+      - record: gitlab:build_queue_time_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            rate(gitlab_ci_build_queue_duration_seconds_bucket[5m])
+          )
+
+      # System resource utilization
+      - record: system:cpu_utilization_5m
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      - record: system:memory_utilization_5m
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+
+      - record: system:disk_utilization_5m
+        expr: |
+          100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100)
+
+  # Container resource recording rules
+  - name: container_recording_rules
+    interval: 30s
+    rules:
+      # Container CPU usage
+      - record: container:cpu_usage_rate_5m
+        expr: |
+          rate(container_cpu_usage_seconds_total{container!=""}[5m])
+
+      # Container memory usage
+      - record: container:memory_usage_bytes
+        expr: |
+          container_memory_usage_bytes{container!=""}
+
+      # Container network I/O
+      - record: container:network_io_rate_5m
+        expr: |
+          rate(container_network_receive_bytes_total{container!=""}[5m]) +
+          rate(container_network_transmit_bytes_total{container!=""}[5m])
+
+  # GitLab Runner specific metrics
+  - name: gitlab_runner_recording_rules
+    interval: 30s
+    rules:
+      # Active jobs per runner
+      - record: gitlab_runner:active_jobs
+        expr: |
+          gitlab_runner_jobs{state="running"}
+
+      # Failed jobs rate
+      - record: gitlab_runner:failed_jobs_rate_5m
+        expr: |
+          rate(gitlab_runner_jobs_total{state="failed"}[5m])
+
+      # Concurrent job limit utilization
+      - record: gitlab_runner:concurrent_limit_utilization
+        expr: |
+          (gitlab_runner_concurrent_limit_hits_total / gitlab_runner_concurrent_limit) * 100
