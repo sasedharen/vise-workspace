@@ -1,0 +1,13 @@
+{
+    "timestamp": "20250821_125225",
+    "date": "2025-08-21T12:52:26+00:00",
+    "database": "vise",
+    "schemas": ["users", "codes", "public"],
+    "migration_version": "79",
+    "backup_types": ["hourly"],
+    "retention": {
+        "hourly": "24 hours",
+        "daily": "7 days", 
+        "weekly": "4 weeks"
+    }
+}

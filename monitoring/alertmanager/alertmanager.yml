@@ -1,0 +1,22 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@vise.local'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'vise-team'
+
+receivers:
+  - name: 'vise-team'
+    email_configs:
+      - to: 'admin@vise.local'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'dev', 'instance']

@@ -1,0 +1,44 @@
+groups:
+  # VISE API Performance Rules
+  - name: vise_api_performance_rules
+    interval: 30s
+    rules:
+      # API request rate
+      - record: vise:api_request_rate_5m
+        expr: |
+          rate(vise_api_http_requests_total[5m])
+
+      # API error rate
+      - record: vise:api_error_rate_5m
+        expr: |
+          rate(vise_api_http_requests_total{status=~"4..|5.."}[5m]) /
+          rate(vise_api_http_requests_total[5m])
+
+  # Authentication Service Rules
+  - name: vise_auth_rules
+    interval: 30s
+    rules:
+      # Login success rate
+      - record: vise:auth_login_success_rate_5m
+        expr: |
+          rate(vise_auth_login_attempts_total{status="success"}[5m]) /
+          rate(vise_auth_login_attempts_total[5m])
+
+      # OPA service availability
+      - record: vise:opa_availability_5m
+        expr: |
+          avg_over_time(up{job="opa"}[5m])
+
+  # System Resource Rules
+  - name: vise_system_rules
+    interval: 30s
+    rules:
+      # System CPU utilization
+      - record: vise:system_cpu_utilization_5m
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      # System memory utilization
+      - record: vise:system_memory_utilization_5m
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100

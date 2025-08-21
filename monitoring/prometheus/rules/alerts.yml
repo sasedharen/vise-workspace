@@ -1,0 +1,471 @@
+# AlertManager Rules for VISE Application Monitoring
+# Designed for comprehensive VISE system monitoring including OPA, Auth, and Admissions
+
+groups:
+  # Critical system alerts
+  - name: system.critical
+    rules:
+      - alert: HighCPUUsage
+        expr: vise:system_cpu_utilization_5m > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: vise:system_memory_utilization_5m > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: vise:system_disk_utilization_5m > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceCritical
+        expr: vise:system_disk_utilization_5m > 95
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Disk space critically low"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: VISESystemHealthLow
+        expr: vise:system_health_score < 70
+        for: 5m
+        labels:
+          severity: warning
+          service: vise
+        annotations:
+          summary: "VISE system health degraded"
+          description: "System health score is {{ $value }}%, indicating degraded performance"
+
+  # VISE Backend API alerts
+  - name: vise.api.alerts
+    rules:
+      - alert: VISEBackendDown
+        expr: up{job="vise-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: vise-backend
+        annotations:
+          summary: "VISE Backend API is down"
+          description: "VISE Backend instance {{ $labels.instance }} is down"
+
+      - alert: VISEHighErrorRate
+        expr: vise:api_error_rate_5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: vise-api
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ printf \"%.2f%%\" $value }} over the last 5 minutes"
+
+      - alert: VISEHighResponseTime
+        expr: vise:api_response_time_p95_5m > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: vise-api
+        annotations:
+          summary: "High API response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: VISECriticalResponseTime
+        expr: vise:api_response_time_p99_5m > 5
+        for: 2m
+        labels:
+          severity: critical
+          service: vise-api
+        annotations:
+          summary: "Critical API response time"
+          description: "99th percentile response time is {{ $value }}s"
+
+      - alert: VISELowRequestRate
+        expr: vise:api_request_rate_5m < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-api
+        annotations:
+          summary: "Low API request rate"
+          description: "API request rate is {{ $value }} requests/sec, which may indicate issues"
+
+  # OPA (Open Policy Agent) alerts
+  - name: opa.alerts
+    rules:
+      - alert: OPADown
+        expr: up{job="opa"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: opa
+        annotations:
+          summary: "OPA service is down"
+          description: "Open Policy Agent instance {{ $labels.instance }} is down - authorization disabled"
+
+      - alert: OPAHighDecisionLatency
+        expr: vise:auth_opa_decision_latency_p95_5m > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: opa
+        annotations:
+          summary: "High OPA decision latency"
+          description: "OPA policy decision latency is {{ $value }}s (95th percentile)"
+
+      - alert: OPACriticalDecisionLatency
+        expr: vise:auth_opa_decision_latency_p95_5m > 0.5
+        for: 2m
+        labels:
+          severity: critical
+          service: opa
+        annotations:
+          summary: "Critical OPA decision latency"
+          description: "OPA policy decision latency is {{ $value }}s - severely impacting authorization"
+
+      - alert: OPALowAvailability
+        expr: vise:opa_availability_5m < 0.99
+        for: 5m
+        labels:
+          severity: warning
+          service: opa
+        annotations:
+          summary: "OPA service availability degraded"
+          description: "OPA availability is {{ printf \"%.2f%%\" $value }} over last 5 minutes"
+
+      - alert: OPAHighDecisionRate
+        expr: vise:auth_opa_decision_rate_5m > 1000
+        for: 10m
+        labels:
+          severity: warning
+          service: opa
+        annotations:
+          summary: "High OPA decision rate"
+          description: "OPA decision rate is {{ $value }} decisions/sec - may need scaling"
+
+  # Authentication service alerts
+  - name: vise.auth.alerts
+    rules:
+      - alert: VISEAuthHighFailedLogins
+        expr: vise:auth_failed_login_rate_5m > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: vise-auth
+        annotations:
+          summary: "High failed login rate"
+          description: "Failed login rate is {{ $value }} failures/sec - possible brute force attack"
+
+      - alert: VISEAuthCriticalFailedLogins
+        expr: vise:auth_failed_login_rate_5m > 50
+        for: 1m
+        labels:
+          severity: critical
+          service: vise-auth
+        annotations:
+          summary: "Critical failed login rate"
+          description: "Failed login rate is {{ $value }} failures/sec - likely security incident"
+
+      - alert: VISEAuthLowLoginSuccessRate
+        expr: vise:auth_login_success_rate_5m < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-auth
+        annotations:
+          summary: "Low login success rate"
+          description: "Login success rate is {{ printf \"%.2f%%\" $value }} - investigate auth issues"
+
+      - alert: VISEAuthHighActiveSessions
+        expr: vise:auth_active_sessions > 10000
+        for: 5m
+        labels:
+          severity: warning
+          service: vise-auth
+        annotations:
+          summary: "High number of active sessions"
+          description: "Active sessions count is {{ $value }} - monitor system load"
+
+      - alert: VISEAuthLowTokenGeneration
+        expr: vise:auth_token_generation_rate_5m < 1
+        for: 15m
+        labels:
+          severity: warning
+          service: vise-auth
+        annotations:
+          summary: "Low token generation rate"
+          description: "Token generation rate is {{ $value }} tokens/sec - users may not be logging in"
+
+  # Admissions service alerts
+  - name: vise.admissions.alerts
+    rules:
+      - alert: VISEAdmissionsLowSubmissionRate
+        expr: vise:admissions_submission_rate_5m < 0.1
+        for: 30m
+        labels:
+          severity: warning
+          service: vise-admissions
+        annotations:
+          summary: "Low admission application submission rate"
+          description: "Application submission rate is {{ $value }} submissions/sec over last 5 minutes"
+
+      - alert: VISEAdmissionsHighProcessingTime
+        expr: vise:admissions_workflow_completion_time_p95_5m > 86400
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-admissions
+        annotations:
+          summary: "High admission processing time"
+          description: "95th percentile processing time is {{ printf \"%.2f\" $value }}s"
+
+      - alert: VISEAdmissionsLowApprovalRate
+        expr: vise:admissions_approval_rate_5m / vise:admissions_submission_rate_5m < 0.3
+        for: 1h
+        labels:
+          severity: warning
+          service: vise-admissions
+        annotations:
+          summary: "Low admission approval rate"
+          description: "Approval rate relative to submissions is low - investigate bottlenecks"
+
+      - alert: VISEAdmissionsHighPendingApplications
+        expr: vise:business_applications_in_progress_total > 1000
+        for: 30m
+        labels:
+          severity: warning
+          service: vise-admissions
+        annotations:
+          summary: "High number of pending applications"
+          description: "{{ $value }} applications are pending processing - workflow backlog detected"
+
+  # Database alerts
+  - name: database.alerts
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is down"
+
+      - alert: VISEDBHighConnections
+        expr: vise:db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "VISE database high connection count"
+          description: "VISE database has {{ $value }} active connections"
+
+      - alert: VISEDBSlowQueries
+        expr: vise:db_query_duration_p95_5m > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "VISE database slow queries detected"
+          description: "95th percentile query duration is {{ $value }}s"
+
+      - alert: VISEDBLowQueryRate
+        expr: vise:db_queries_rate_5m < 1
+        for: 15m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "VISE database low query rate"
+          description: "Database query rate is {{ $value }} queries/sec - application may be down"
+
+  # Redis alerts
+  - name: redis.alerts
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is down - session management affected"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_rss_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ printf \"%.2f%%\" $value }}"
+
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high connection count"
+          description: "Redis has {{ $value }} connected clients"
+
+  # Container alerts
+  - name: container.alerts
+    rules:
+      - alert: VISEContainerCPUUsage
+        expr: vise:container_cpu_usage_rate_5m > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "VISE container high CPU usage"
+          description: "Container {{ $labels.container }} CPU usage is {{ printf \"%.2f%%\" $value }}"
+
+      - alert: VISEContainerMemoryUsage
+        expr: vise:container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "VISE container high memory usage"
+          description: "Container {{ $labels.container }} memory usage is {{ printf \"%.2f%%\" $value }}"
+
+      - alert: VISEContainerRestartLoop
+        expr: increase(container_last_seen{container=~"vise-.*"}[1h]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+        annotations:
+          summary: "VISE container restart loop detected"
+          description: "Container {{ $labels.container }} has restarted {{ $value }} times in the last hour"
+
+  # Business logic alerts
+  - name: vise.business.alerts
+    rules:
+      - alert: VISELowActiveUsers
+        expr: vise:business_active_users_total < 10
+        for: 1h
+        labels:
+          severity: warning
+          service: vise-business
+        annotations:
+          summary: "Low number of active users"
+          description: "Only {{ $value }} active users in the system - investigate user engagement"
+
+      - alert: VISEHighActiveUsers
+        expr: vise:business_active_users_total > 10000
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-business
+        annotations:
+          summary: "High number of active users"
+          description: "{{ $value }} active users - monitor system capacity"
+
+      - alert: VISELongApplicationProcessingTime
+        expr: vise:business_application_processing_time_avg_1h > 172800
+        for: 30m
+        labels:
+          severity: warning
+          service: vise-business
+        annotations:
+          summary: "Long average application processing time"
+          description: "Average processing time is {{ printf \"%.2f\" $value }}s - workflow needs optimization"
+
+  # Security alerts
+  - name: vise.security.alerts
+    rules:
+      - alert: VISESuspiciousLoginActivity
+        expr: |
+          (
+            rate(vise_auth_login_attempts_total{status="failed"}[5m]) > 5
+          ) and on() (
+            rate(vise_auth_login_attempts_total{status="success"}[5m]) < 0.1
+          )
+        for: 5m
+        labels:
+          severity: critical
+          service: vise-security
+        annotations:
+          summary: "Suspicious login activity detected"
+          description: "High failed login rate with very low success rate - possible attack"
+
+      - alert: VISEUnauthorizedAccessAttempts
+        expr: rate(vise_api_http_requests_total{status="403"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: vise-security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} forbidden requests/sec - monitor for malicious activity"
+
+      - alert: VISEOPAAuthorizationFailures
+        expr: rate(vise_opa_policy_decisions_total{result="denied"}[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: vise-security
+        annotations:
+          summary: "High rate of authorization denials"
+          description: "{{ $value }} authorization denials/sec from OPA - investigate access patterns"
+
+  # Performance alerts
+  - name: vise.performance.alerts
+    rules:
+      - alert: VISEHighThroughputNeeded
+        expr: vise:api_request_rate_5m > 1000
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-performance
+        annotations:
+          summary: "High API throughput detected"
+          description: "API request rate is {{ $value }} requests/sec - consider scaling"
+
+      - alert: VISENetworkIOHigh
+        expr: vise:container_network_io_rate_5m > 104857600  # 100MB/s
+        for: 10m
+        labels:
+          severity: warning
+          service: vise-performance
+        annotations:
+          summary: "High network I/O detected"
+          description: "Network I/O rate is {{ $value }} bytes/sec - monitor bandwidth usage"
+
+      - alert: VISECacheHitRateLow
+        expr: redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) < 0.8
+        for: 15m
+        labels:
+          severity: warning
+          service: vise-performance
+        annotations:
+          summary: "Low Redis cache hit rate"
+          description: "Cache hit rate is {{ printf \"%.2f%%\" $value }} - investigate cache efficiency"

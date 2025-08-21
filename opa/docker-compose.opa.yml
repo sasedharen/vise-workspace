@@ -1,0 +1,27 @@
+services:
+  opa:
+    image: openpolicyagent/opa:latest-static
+    container_name: vise-opa-postgres
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./opa-policies:/policies:ro
+      - ./config.yaml:/config.yaml:ro
+    command: ["run", "--server", "--addr", "0.0.0.0:8181", "--config-file", "/config.yaml", "/policies"]
+    environment:
+      - OPA_LOG_LEVEL=debug
+      - DATABASE_URL=postgresql://postgres:vise@postgres:5432/vise?sslmode=disable
+    healthcheck:
+      test: ["CMD", "/opa", "eval", "http.send({\"method\": \"get\", \"url\": \"http://localhost:8181/\"})" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - vise-network
+
+networks:
+  vise-network:
+    driver: bridge
+    name: vise-network

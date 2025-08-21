@@ -1,0 +1,298 @@
+{
+  "roles": {
+    "co_admin": {
+      "department": "*",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Central Office Administrator - Full system access"
+    },
+    "co_sysadmin": {
+      "department": "*",
+      "level": "sysadmin",
+      "permissions": ["create", "read", "update", "delete", "settings"],
+      "description": "Central Office System Administrator - Technical access"
+    },
+    "co_operator": {
+      "department": "*",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Central Office Operator - Limited system access"
+    },
+    "co_viewer": {
+      "department": "*",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Central Office Viewer - Read-only system access"
+    },
+    "admissions_admin": {
+      "department": "admissions",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Admissions Administrator"
+    },
+    "admissions_operator": {
+      "department": "admissions",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Admissions Operator"
+    },
+    "admissions_viewer": {
+      "department": "admissions",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Admissions Viewer"
+    },
+    "academics_admin": {
+      "department": "academics",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Academics Administrator"
+    },
+    "academics_operator": {
+      "department": "academics",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Academics Operator - Teachers"
+    },
+    "academics_viewer": {
+      "department": "academics",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Academics Viewer"
+    },
+    "finance_admin": {
+      "department": "finance",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Finance Administrator"
+    },
+    "finance_operator": {
+      "department": "finance",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Finance Operator"
+    },
+    "finance_viewer": {
+      "department": "finance",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Finance Viewer"
+    },
+    "hr_admin": {
+      "department": "hr",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Human Resources Administrator"
+    },
+    "hr_operator": {
+      "department": "hr",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Human Resources Operator"
+    },
+    "hr_viewer": {
+      "department": "hr",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Human Resources Viewer"
+    },
+    "it_admin": {
+      "department": "it",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "IT Administrator"
+    },
+    "it_operator": {
+      "department": "it",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "IT Operator"
+    },
+    "it_viewer": {
+      "department": "it",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "IT Viewer"
+    },
+    "management_admin": {
+      "department": "management",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Management Administrator"
+    },
+    "management_operator": {
+      "department": "management",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Management Operator"
+    },
+    "management_viewer": {
+      "department": "management",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Management Viewer"
+    },
+    "sports_admin": {
+      "department": "sports",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Sports Administrator"
+    },
+    "sports_operator": {
+      "department": "sports",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Sports Operator - Coaches"
+    },
+    "sports_viewer": {
+      "department": "sports",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Sports Viewer"
+    },
+    "health_admin": {
+      "department": "health",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Health Administrator"
+    },
+    "health_operator": {
+      "department": "health",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Health Operator - Medical Staff"
+    },
+    "health_viewer": {
+      "department": "health",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Health Viewer"
+    },
+    "transport_admin": {
+      "department": "transport",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Transport Administrator"
+    },
+    "transport_operator": {
+      "department": "transport",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Transport Operator"
+    },
+    "transport_viewer": {
+      "department": "transport",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Transport Viewer"
+    },
+    "food_admin": {
+      "department": "food",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Food Service Administrator"
+    },
+    "food_operator": {
+      "department": "food",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Food Service Operator"
+    },
+    "food_viewer": {
+      "department": "food",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Food Service Viewer"
+    },
+    "hostel_admin": {
+      "department": "hostel",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Hostel Administrator"
+    },
+    "hostel_operator": {
+      "department": "hostel",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Hostel Operator"
+    },
+    "hostel_viewer": {
+      "department": "hostel",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Hostel Viewer"
+    },
+    "media_admin": {
+      "department": "media",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Media Administrator"
+    },
+    "media_operator": {
+      "department": "media",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Media Operator"
+    },
+    "media_viewer": {
+      "department": "media",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Media Viewer"
+    },
+    "entrepreneur_admin": {
+      "department": "entrepreneur",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Entrepreneurship Administrator"
+    },
+    "entrepreneur_operator": {
+      "department": "entrepreneur",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Entrepreneurship Operator"
+    },
+    "entrepreneur_viewer": {
+      "department": "entrepreneur",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Entrepreneurship Viewer"
+    },
+    "research_admin": {
+      "department": "research",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Research Administrator"
+    },
+    "research_operator": {
+      "department": "research",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Research Operator"
+    },
+    "research_viewer": {
+      "department": "research",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Research Viewer"
+    },
+    "skill_admin": {
+      "department": "skill",
+      "level": "admin",
+      "permissions": ["create", "read", "update", "delete", "approve", "reports", "settings"],
+      "description": "Skill Development Administrator"
+    },
+    "skill_operator": {
+      "department": "skill",
+      "level": "operator",
+      "permissions": ["create", "read", "update", "reports"],
+      "description": "Skill Development Operator"
+    },
+    "skill_viewer": {
+      "department": "skill",
+      "level": "viewer",
+      "permissions": ["read", "reports"],
+      "description": "Skill Development Viewer"
+    }
+  }
+}

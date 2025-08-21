@@ -1,0 +1,361 @@
+package vise.authz
+
+import future.keywords.if
+import future.keywords.in
+
+# Default deny all access
+default allow := false
+
+# HTTP service configuration for querying backend
+backend_url := "http://host.docker.internal:6000"
+
+# ============================================================================
+# MAIN AUTHORIZATION RULES - UNIT-BASED AUTHORIZATION
+# ============================================================================
+
+# HeadOffice Admin: System-wide access across all units
+allow if {
+    user_has_headoffice_role(input.user, "admin")
+    input.action in ["create", "read", "update", "delete", "approve", "reports", "settings"]
+}
+
+# HeadOffice Sysadmin: System-wide technical access
+allow if {
+    user_has_headoffice_role(input.user, "sysadmin") 
+    input.action in ["create", "read", "update", "delete", "settings"]
+}
+
+# HeadOffice Operator: Limited system-wide access
+allow if {
+    user_has_headoffice_role(input.user, "operator")
+    input.action in ["create", "read", "update", "reports"]
+    not input.action in ["delete", "approve", "settings"]
+}
+
+# HeadOffice Viewer: Read-only system access
+allow if {
+    user_has_headoffice_role(input.user, "viewer")
+    input.action in ["read", "reports"]
+}
+
+# Unit Admin: Full access within assigned unit context
+allow if {
+    user_has_unit_role(input.user, "admin", input.unit, input.institution, input.branch)
+    input.action in ["create", "read", "update", "delete", "approve", "reports", "settings"]
+}
+
+# Unit Sysadmin: Technical administrative access within unit
+allow if {
+    user_has_unit_role(input.user, "sysadmin", input.unit, input.institution, input.branch)
+    input.action in ["create", "read", "update", "delete", "settings"]
+}
+
+# Unit Operator: Operational access within unit
+allow if {
+    user_has_unit_role(input.user, "operator", input.unit, input.institution, input.branch)
+    input.action in ["create", "read", "update", "reports"]
+    not input.action in ["delete", "approve", "settings"]
+}
+
+# Unit Viewer: Read-only access within unit
+allow if {
+    user_has_unit_role(input.user, "viewer", input.unit, input.institution, input.branch)
+    input.action in ["read", "reports"]
+}
+
+# Cross-unit access rules for coordinating units
+allow if {
+    # Administration unit can read basic info from academic units
+    user_has_unit_role(input.user, "admin", "ADT", input.institution, input.branch)
+    input.unit in ["ACD", "ADM", "SPT"] # Academic, Admissions, Sports
+    input.action in ["read", "reports"]
+}
+
+allow if {
+    # HR unit can access basic employee info from all units
+    user_has_unit_role(input.user, "admin", "HRD", input.institution, input.branch)
+    input.action in ["read", "reports"]
+    input.resource in ["employees", "staff", "user_profiles"]
+}
+
+allow if {
+    # Finance unit can access fee-related data from academic units
+    user_has_unit_role(input.user, "admin", "FIN", input.institution, input.branch)
+    input.unit in ["ADM", "ACD"] # Admissions, Academics
+    input.resource in ["fees", "payments", "financial_aid", "billing"]
+    input.action in ["read", "update", "reports"]
+}
+
+allow if {
+    # IT unit can access technical configuration for all units
+    user_has_unit_role(input.user, "sysadmin", "ICT", input.institution, input.branch) 
+    input.resource in ["configurations", "integrations", "systems", "technical_settings"]
+    input.action in ["read", "update", "settings"]
+}
+
+# ============================================================================
+# LEGACY DEPARTMENT-BASED RULES (for backward compatibility during transition)
+# ============================================================================
+
+# Legacy department-based access (maps to unit-based access)
+allow if {
+    # Map legacy department to unit code
+    department_to_unit_map := {
+        "admissions": "ADM",
+        "academics": "ACD", 
+        "sports": "SPT",
+        "finance": "FIN",
+        "hr": "HRD",
+        "it": "ICT",
+        "management": "ADT",
+        "food": "FOD",
+        "transport": "TSP",
+        "health": "HWS",
+        "media": "COM"
+    }
+    
+    unit_code := department_to_unit_map[input.department]
+    user_has_legacy_department_role(input.user, input.department, input.branch)
+    input.action in ["create", "read", "update", "delete", "approve", "reports", "settings"]
+}
+
+# ============================================================================
+# HELPER FUNCTIONS - QUERY POSTGRESQL VIA HTTP
+# ============================================================================
+
+# Get user data from PostgreSQL via VISE backend API
+get_user_data(email) := user_data if {
+    url := sprintf("%s/api/v1/opa/user/%s", [backend_url, email])
+    response := http.send({
+        "method": "GET",
+        "url": url,
+        "headers": {
+            "Content-Type": "application/json",
+            "User-Agent": "OPA-Policy-Agent/1.0"
+        },
+        "raise_error": false,
+        "force_json_decode": true
+    })
+    
+    response.status_code == 200
+    user_data := response.body.data
+}
+
+# Get branch data from PostgreSQL via VISE backend API  
+get_branch_data(branch_id) := branch_data if {
+    url := sprintf("%s/api/v1/opa/branch/%s", [backend_url, branch_id])
+    response := http.send({
+        "method": "GET", 
+        "url": url,
+        "headers": {
+            "Content-Type": "application/json",
+            "User-Agent": "OPA-Policy-Agent/1.0"
+        },
+        "raise_error": false,
+        "force_json_decode": true
+    })
+    
+    response.status_code == 200
+    branch_data := response.body.data
+}
+
+# Get unit data from PostgreSQL via VISE backend API
+get_unit_data(institution_code, unit_code) := unit_data if {
+    url := sprintf("%s/api/v1/opa/unit/%s", [backend_url, unit_code])
+    response := http.send({
+        "method": "GET",
+        "url": url,
+        "headers": {
+            "Content-Type": "application/json",
+            "User-Agent": "OPA-Policy-Agent/1.0"
+        },
+        "raise_error": false,
+        "force_json_decode": true
+    })
+    
+    response.status_code == 200
+    unit_data := response.body.data
+}
+
+# ============================================================================
+# ROLE CHECKING FUNCTIONS
+# ============================================================================
+
+# Check if user has specific HeadOffice role (central office context)
+user_has_headoffice_role(user_email, role) if {
+    user_data := get_user_data(user_email)
+    user_data.is_active == true
+    user_data.role_name == role
+    user_data.state_code == "33"
+    user_data.district_code == "01" 
+    user_data.branch_code == "HO"
+}
+
+# Check if user has specific unit role in the given context
+user_has_unit_role(user_email, role, unit_code, institution_code, branch_id) if {
+    user_data := get_user_data(user_email)
+    user_data.is_active == true
+    user_data.role_name == role
+    user_data.unit_code == unit_code
+    user_data.institution_code == institution_code
+    branch_matches(user_data.state_code, user_data.district_code, user_data.branch_code, branch_id)
+}
+
+# Legacy function for backward compatibility during transition
+user_has_legacy_department_role(user_email, department, branch_id) if {
+    user_data := get_user_data(user_email)
+    user_data.is_active == true
+    user_data.role_name != null
+    
+    # Check if user has a role that matches the requested department
+    # This is for backward compatibility with old OPA policies that still use department-based checks
+    department_unit_map := {
+        "admissions": "ADM",
+        "academics": "ACD", 
+        "sports": "SPT",
+        "finance": "FIN",
+        "hr": "HRD",
+        "it": "ICT",
+        "management": "ADT",
+        "food": "FOD",
+        "transport": "TSP",
+        "health": "HWS",
+        "media": "COM"
+    }
+    
+    expected_unit := department_unit_map[department]
+    user_data.unit_code == expected_unit
+    branch_matches(user_data.state_code, user_data.district_code, user_data.branch_code, branch_id)
+}
+
+# Helper function to check if a role assignment branch matches the requested branch
+branch_matches(state_code, district_code, branch_code, requested_branch_id) if {
+    # Construct branch ID from geographic components and match
+    branch_id := sprintf("%s%s%s", [state_code, district_code, branch_code])
+    branch_id == requested_branch_id
+}
+
+branch_matches(state_code, district_code, branch_code, requested_branch_id) if {
+    # HeadOffice users can access any branch (system-wide access)
+    state_code == "33"
+    district_code == "01"
+    branch_code == "HO"
+}
+
+# Check if user exists and is active
+user_exists(user_email) if {
+    user_data := get_user_data(user_email)
+    user_data.is_active == true
+}
+
+# Get user's effective role for a unit context (now returns single role)
+user_unit_roles(user_email, unit_code, institution_code, branch_id) := roles if {
+    user_data := get_user_data(user_email)
+    user_data.is_active == true
+    user_data.unit_code == unit_code
+    user_data.institution_code == institution_code
+    branch_matches(user_data.state_code, user_data.district_code, user_data.branch_code, branch_id)
+    
+    # Return single role as set (for backward compatibility)
+    roles := {user_data.role_name}
+}
+
+# ============================================================================
+# AUDIT TRAIL AND DECISION LOGGING
+# ============================================================================
+
+# Audit trail: Log authorization decisions with unit context
+decision_log := {
+    "timestamp": time.now_ns(),
+    "user": input.user,
+    "department": input.department,      # Legacy field
+    "unit": input.unit,                  # New unit-based context
+    "institution": input.institution,   # Institution context
+    "resource": input.resource,
+    "action": input.action,
+    "branch": input.branch,
+    "allowed": allow,
+    "reason": decision_reason,
+    "authorization_model": "unit-based",
+    "data_source": "postgresql"
+}
+
+decision_reason := reason if {
+    allow
+    user_has_headoffice_role(input.user, "admin")
+    reason := "HeadOffice Admin - Full System Access"
+} else := reason if {
+    allow
+    user_has_headoffice_role(input.user, "sysadmin")
+    reason := "HeadOffice Sysadmin - System Technical Access"
+} else := reason if {
+    allow
+    user_has_headoffice_role(input.user, "operator")
+    reason := "HeadOffice Operator - System Operational Access"
+} else := reason if {
+    allow
+    user_has_headoffice_role(input.user, "viewer")
+    reason := "HeadOffice Viewer - System Read Access"
+} else := reason if {
+    allow
+    user_has_unit_role(input.user, "admin", input.unit, input.institution, input.branch)
+    reason := sprintf("Unit Admin - %s in %s/%s", [input.unit, input.institution, input.branch])
+} else := reason if {
+    allow 
+    user_has_unit_role(input.user, "sysadmin", input.unit, input.institution, input.branch)
+    reason := sprintf("Unit Sysadmin - %s in %s/%s", [input.unit, input.institution, input.branch])
+} else := reason if {
+    allow
+    user_has_unit_role(input.user, "operator", input.unit, input.institution, input.branch)
+    reason := sprintf("Unit Operator - %s in %s/%s", [input.unit, input.institution, input.branch])
+} else := reason if {
+    allow
+    user_has_unit_role(input.user, "viewer", input.unit, input.institution, input.branch)
+    reason := sprintf("Unit Viewer - %s in %s/%s", [input.unit, input.institution, input.branch])
+} else := reason if {
+    allow
+    user_has_legacy_department_role(input.user, input.department, input.branch)
+    reason := sprintf("Legacy Department Role - %s in %s", [input.department, input.branch])
+} else := "Access Denied - Insufficient Permissions"
+
+# ============================================================================
+# DEBUG AND TESTING FUNCTIONS
+# ============================================================================
+
+# Debug function to get raw user data
+debug_user_data := get_user_data(input.user) if {
+    input.debug == true
+}
+
+# Debug function to test HTTP connectivity
+debug_connectivity := response if {
+    input.debug == true
+    url := sprintf("%s/health", [backend_url])
+    response := http.send({
+        "method": "GET",
+        "url": url,
+        "raise_error": false
+    })
+}
+
+# Debug function to show unit mappings
+debug_unit_mapping := {
+    "department_to_unit": {
+        "admissions": "ADM",
+        "academics": "ACD",
+        "sports": "SPT", 
+        "finance": "FIN",
+        "hr": "HRD",
+        "it": "ICT",
+        "management": "ADT",
+        "food": "FOD",
+        "transport": "TSP",
+        "health": "HWS",
+        "media": "COM",
+        "marketing": "MKT",
+        "operations": "OPS",
+        "library": "LIB"
+    }
+} if {
+    input.debug == true
+}

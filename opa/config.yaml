@@ -1,0 +1,41 @@
+# OPA Configuration for PostgreSQL Data Source Integration
+# This configuration enables OPA to query PostgreSQL through an HTTP data service
+
+# Server configuration
+services:
+  vise_auth_data:
+    url: "http://vise-backend:6000"
+    headers:
+      Content-Type: "application/json"
+
+# Decision logging configuration  
+decision_logs:
+  console: true
+  reporting:
+    min_delay_seconds: 5
+    max_delay_seconds: 10
+
+# Status reporting
+status:
+  console: true
+  
+# Bundle configuration (policies only, no static data) - disabled for local files
+# bundles:
+#   vise_policies:
+#     resource: "/policies"
+#     persist: true
+
+# Server addresses
+server:
+  address: "0.0.0.0:8181"
+
+# Plugins configuration
+# plugins:
+#   discovery:
+#     name: "discovery"
+
+# Default decision
+default_decision: "/vise/authz/allow"
+
+# Console decision logging
+console_decision_logs: true

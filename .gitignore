@@ -1,14 +1,17 @@
 # Exclude main service directories from vise-workspace repository
 vise-frontend/
 vise-backend/
-auth-service/
 ci-cd/gitlab/data/
 ci-cd/gitlab/backups/
 ci-cd/gitlab/logs/
 ci-cd/redis-data/
 ci-cd/postgresql-data/
 vise-cache/redis-cache/
-backups/
+database/postgres_data/
+cache/redis_data/
+monitoring/loki/loki-data/
+
+
 
 # Common development files
 .DS_Store

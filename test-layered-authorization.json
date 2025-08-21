@@ -1,0 +1,36 @@
+{
+  "admin_full_access": {
+    "user": "admin@vise.edu",
+    "action": "create",
+    "path": "/api/v1/admissions/new",
+    "unit": "ADM",
+    "branch": "330109"
+  },
+  "operator_blocked_from_admissions": {
+    "user": "mike.wilson@vise.edu",
+    "action": "create", 
+    "path": "/api/v1/admissions/new",
+    "unit": "ADM",
+    "branch": "330109"
+  },
+  "operator_allowed_read_admissions": {
+    "user": "mike.wilson@vise.edu",
+    "action": "read",
+    "path": "/api/v1/admissions/view/123",
+    "unit": "ADM", 
+    "branch": "330109"
+  },
+  "self_role_profile_access": {
+    "user": "john.doe@vise.edu",
+    "action": "update",
+    "path": "/api/v1/users/uuid-123",
+    "user_id": "uuid-123"
+  },
+  "reporter_role_reports_access": {
+    "user": "reporter@vise.edu",
+    "action": "create",
+    "path": "/api/v1/reports/analytics",
+    "unit": "",
+    "branch": ""
+  }
+}

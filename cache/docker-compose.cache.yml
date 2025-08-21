@@ -1,24 +1,19 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:7-alpine
-    container_name: vise-redis-cache
+    container_name: vise-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
-      - ./redis-cache:/data
+      - ./redis_data:/data
     command: redis-server --appendonly yes --appendfsync everysec
     environment:
       - REDIS_REPLICATION_MODE=master
     networks:
-      - redis-network
+      - vise-network
 
 networks:
-  redis-network:
+  vise-network:
     driver: bridge
-
-volumes:
-  redis-cache:
-    driver: local
+    name: vise-network

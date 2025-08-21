@@ -23,7 +23,11 @@
       "Bash(./metrics_server)",
       "Bash(grep:*)",
       "Bash(./test-full-workflow.sh:*)",
-      "Bash(go run:*)"
+      "Bash(go run:*)",
+      "Bash(docker logs:*)",
+      "Bash(sed:*)",
+      "Bash(chmod:*)",
+      "Bash(./bin/vise-backend)"
     ],
     "deny": [],
     "ask": []

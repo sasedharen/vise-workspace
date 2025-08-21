@@ -1,0 +1,19 @@
+# Shared networks and volumes are defined here
+networks:
+  vise-network:
+    driver: bridge
+    name: vise-network
+  monitoring:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+    name: vise_postgres_data
+  redis_data:
+    driver: local
+    name: vise_redis_data
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+  loki-data:

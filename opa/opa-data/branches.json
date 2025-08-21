@@ -1,0 +1,28 @@
+{
+  "branches": {
+    "branch_001": {
+      "name": "Main Campus - Chennai",
+      "state_code": "33",
+      "district_code": "001", 
+      "branch_code": "001",
+      "institution_codes": ["00", "01"],
+      "is_active": true
+    },
+    "branch_002": {
+      "name": "Secondary Campus - Coimbatore",
+      "state_code": "33",
+      "district_code": "002",
+      "branch_code": "002", 
+      "institution_codes": ["00"],
+      "is_active": true
+    },
+    "branch_003": {
+      "name": "Regional Campus - Madurai",
+      "state_code": "33",
+      "district_code": "003",
+      "branch_code": "003",
+      "institution_codes": ["00", "01"],
+      "is_active": true
+    }
+  }
+}

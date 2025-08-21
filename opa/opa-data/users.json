@@ -1,0 +1,110 @@
+{
+  "users": {
+    "admin@vise.edu": {
+      "user_id": "user_admin_001",
+      "first_name": "System",
+      "surname": "Administrator",
+      "branches": {
+        "branch_001": ["admissions_admin", "academics_admin"],
+        "branch_002": ["admissions_admin"]
+      },
+      "co_roles": ["co_admin"],
+      "is_active": true
+    },
+    "john.doe@vise.edu": {
+      "user_id": "user_john_002",
+      "first_name": "John",
+      "surname": "Doe",
+      "branches": {
+        "branch_001": ["hr_admin", "finance_viewer"],
+        "branch_002": ["hr_operator"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "jane.smith@vise.edu": {
+      "user_id": "user_jane_003",
+      "first_name": "Jane",
+      "surname": "Smith",
+      "branches": {
+        "branch_001": ["admissions_admin"],
+        "branch_003": ["admissions_admin", "academics_operator"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "mike.wilson@vise.edu": {
+      "user_id": "user_mike_004",
+      "first_name": "Mike",
+      "surname": "Wilson",
+      "branches": {
+        "branch_001": ["it_admin"],
+        "branch_002": ["it_admin"],
+        "branch_003": ["it_admin"]
+      },
+      "co_roles": ["co_sysadmin"],
+      "is_active": true
+    },
+    "sarah.johnson@vise.edu": {
+      "user_id": "user_sarah_005",
+      "first_name": "Sarah",
+      "surname": "Johnson",
+      "branches": {
+        "branch_001": ["finance_admin"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "robert.brown@vise.edu": {
+      "user_id": "user_robert_006",
+      "first_name": "Robert",
+      "surname": "Brown",
+      "branches": {
+        "branch_001": ["sports_admin"],
+        "branch_002": ["sports_operator"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "lisa.davis@vise.edu": {
+      "user_id": "user_lisa_007",
+      "first_name": "Lisa",
+      "surname": "Davis",
+      "branches": {
+        "branch_001": ["academics_operator"],
+        "branch_002": ["academics_operator"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "david.taylor@vise.edu": {
+      "user_id": "user_david_008",
+      "first_name": "David",
+      "surname": "Taylor",
+      "branches": {
+        "branch_001": ["health_admin"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "emma.martinez@vise.edu": {
+      "user_id": "user_emma_009",
+      "first_name": "Emma",
+      "surname": "Martinez",
+      "branches": {
+        "branch_001": ["transport_admin"],
+        "branch_003": ["transport_viewer"]
+      },
+      "co_roles": [],
+      "is_active": true
+    },
+    "viewer@vise.edu": {
+      "user_id": "user_viewer_010",
+      "first_name": "System",
+      "surname": "Viewer",
+      "branches": {},
+      "co_roles": ["co_viewer"],
+      "is_active": true
+    }
+  }
+}

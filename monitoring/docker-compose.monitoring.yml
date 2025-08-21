@@ -1,0 +1,232 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: monitoring-prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - monitoring
+      - vise-network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+  grafana:
+    image: grafana/grafana:10.1.4
+    container_name: monitoring-grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=ViseAdmin2025!
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: monitoring-alertmanager
+    restart: always
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.1
+    container_name: monitoring-node-exporter
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - monitoring
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: monitoring-cadvisor
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    networks:
+      - monitoring
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.54.0
+    container_name: monitoring-redis-exporter
+    restart: always
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://cache-redis:6379
+    networks:
+      - monitoring
+      - vise-network
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.13.2
+    container_name: monitoring-postgres-exporter
+    restart: always
+    labels:
+      - "vise.category=monitoring"
+      - "vise.service=database-metrics"
+    ports:
+      - "9187:9187"
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:vise@database-postgres:5432/vise?sslmode=disable
+    networks:
+      - monitoring
+      - vise-network
+
+  # Commented out GitLab runner exporter
+  # gitlab-runner-exporter:
+  #   image: prom/node-exporter:v1.6.1
+  #   container_name: gitlab-runner-exporter
+  #   restart: always
+  #   ports:
+  #     - "9101:9100"
+  #   volumes:
+  #     - ../ci-cd/runner-config-1:/runner-config:ro
+  #   command:
+  #     - '--path.rootfs=/rootfs'
+  #     - '--collector.textfile.directory=/runner-config'
+  #   networks:
+  #     - monitoring
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: monitoring-loki
+    restart: always
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki.yml:/etc/loki/local-config.yaml:ro
+      - ./loki/loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: monitoring-promtail
+    restart: always
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Removed GitLab logs volume
+      # - ../ci-cd/gitlab/logs:/gitlab-logs:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitoring
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.49
+    container_name: monitoring-jaeger
+    restart: always
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring
+
+  # OPA Health Check and API Monitoring
+  vise-api-monitor:
+    image: alpine:3.19
+    container_name: monitoring-api-monitor
+    restart: always
+    volumes:
+      - ./scripts/api-health-check.sh:/app/api-health-check.sh:ro
+    command: >
+      sh -c "
+        apk add --no-cache curl jq &&
+        cp /app/api-health-check.sh /tmp/api-health-check.sh &&
+        chmod +x /tmp/api-health-check.sh &&
+        while true; do
+          /tmp/api-health-check.sh;
+          sleep 60;
+        done
+      "
+    network_mode: "host"
+    depends_on:
+      - prometheus
+
+  # OpenTelemetry Collector for VISE
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.88.0
+    container_name: monitoring-otel-collector
+    restart: always
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8765:8765"   # Prometheus metrics
+    volumes:
+      - ./otel/otel-config.yml:/etc/otelcol-contrib/otel-config.yml:ro
+    command: ["--config=/etc/otelcol-contrib/otel-config.yml"]
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+      - jaeger
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:
+
+networks:
+  vise-network:
+    driver: bridge
+    name: vise-network
+  monitoring:
+    driver: bridge
